@@ -97,7 +97,7 @@ def process_case(case_name, modality_display):
             diff_acc, diff_bacc, diff_sens, diff_spec, diff_auc = [0.0, 0.0, 0.0, 0.0, 0.0]
     except Exception as e:
         # 파일이 없거나 에러가 날 경우 임시 데이터
-        diff_acc, diff_bacc, diff_sens, diff_spec, diff_auc = [0.895, 0.880, 0.875, 0.915, 0.935]
+        diff_acc, diff_bacc, diff_sens, diff_spec, diff_auc = ["---", "---", "---", "---", "---"]
 
     # 2. 테이블 1 (예측 성능 지표) 구성 (Diffusion TTA에 실제 데이터 반영)
     df_metrics1 = pd.DataFrame({
