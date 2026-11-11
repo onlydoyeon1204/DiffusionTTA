@@ -219,7 +219,7 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
 
             gr.Markdown("<div style='height: 20px;'></div>")
 
-            gr.Markdown("## Evaluation Metrics")
+            gr.Markdown("## [Evaluation Metrics]")
 
             with gr.Row():
                 with gr.Column():
