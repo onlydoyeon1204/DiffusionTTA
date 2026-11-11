@@ -31,7 +31,8 @@ def get_auto_case_list(base_dir="original_image"):
         for file in files:
             if file.lower().endswith(('.png', '.jpg', '.jpeg')):
                 # '숫자_숫자_숫자' 패턴(예: 160051860_2_14)만 텍스트에서 쏙 뽑아냅니다.
-                match = re.search(r'(\d+_\d+_\d+)', file)
+                # 맨 앞 숫자가 최소 5자리 이상(예: 160051860)인 경우만 환자 번호로 인식하도록 강화
+                match = re.search(r'(\d{5,}_\d+_\d+)', file)
                 if match:
                     case_set.add(match.group(1))
     
