@@ -22,6 +22,8 @@ def find_image(base_dir, case_name, modality=None):
             if case_name.lower() in file.lower() and file.lower().endswith(('.png', '.jpg', '.jpeg')):
                 return os.path.join(root, file)
     return None
+
+'''
 def get_auto_case_list(base_dir="original_image"):
     case_set = set()
     if not os.path.exists(base_dir):
@@ -38,7 +40,9 @@ def get_auto_case_list(base_dir="original_image"):
     
     # 중복을 제거하고 알파벳/숫자 순으로 정렬해서 반환합니다.
     case_list = sorted(list(case_set))
-    return case_list if case_list else ["160051860_2_14"]
+    return case_list if case_list else ["160051860_2_14"] 
+    
+    '''
     
 def find_gallery_images(base_dir, case_name, modality=None):
     """
@@ -162,11 +166,29 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
         # --- 좌측 패널 ---
         with gr.Column(scale=1):
             gr.Markdown("### Input Settings")
-            # 자동으로 폴더를 뒤져서 환자 번호 리스트를 만듭니다.
-            case_list = get_auto_case_list("original_image")
+            
+            # 사진 2장(g1, g2 폴더)에서 추출한 52명 환자 번호 전체 명단
+            case_list = [
+                "160051860_2_14", "160051860_3_13", "160053159_2_9", "160056308_1_10", "160056308_2_7",
+                "170001022_1_13", "170001022_2_9", "170004726_1_14", "170008345_15", "170009104_14",
+                "170014714_13", "170016169_15", "170018993_12", "170020388_12", "170027851_10",
+                "170031928_8", "170035899_13", "170038426_15", "170038657_11", "170042537_2_10",
+                "170042797_14", "170043280_1_15", "170043280_2_12", "170046491_11", "170048486_14",
+                "170054561_16", "170056654_15", "170057519_11", "170059655_12", "180003768_17",
+                "180005707_11", "180006738_12", "180007060_2_14", "180007060_3_13", "180007995_13",
+                "180008861_13", "180011417_12", "180012048_14", "180012596_14", "180013002_11",
+                "180013383_11", "180015672_13", "180015759_13", "180016858_12", "180017003_13",
+                "180018777_12", "180019108_13", "180020049_15", "180020484_13", "180021705_1_12",
+                "180021705_2_12", "180027879_11"
+            ]
 
-            # 만들어진 리스트를 드롭다운 메뉴에 쏙 집어넣습니다.
-            case_input = gr.Dropdown(choices=case_list, value=case_list[0], label="Case Name")
+            # 52개 환자 번호를 드롭다운 메뉴에 표시
+            case_input = gr.Dropdown(
+                choices=case_list,
+                value=case_list[0],
+                label="Case Name"
+            )
+
             modality_input = gr.Dropdown(choices=["T2WI", "DWI", "ADC"], value="T2WI", label="Modality")
             run_btn = gr.Button("결과 확인 (Run)", variant="primary")
             
