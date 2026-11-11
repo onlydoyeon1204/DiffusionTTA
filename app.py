@@ -2,6 +2,7 @@ import gradio as gr
 import os
 import random
 import pandas as pd
+import re
 
 # --- 1. 파일 탐색 헬퍼 함수 ---
 def find_image(base_dir, case_name, modality=None):
@@ -21,7 +22,23 @@ def find_image(base_dir, case_name, modality=None):
             if case_name.lower() in file.lower() and file.lower().endswith(('.png', '.jpg', '.jpeg')):
                 return os.path.join(root, file)
     return None
-
+def get_auto_case_list(base_dir="original_image"):
+    case_set = set()
+    if not os.path.exists(base_dir):
+        return ["160051860_2_14"] # 폴더가 없을 경우를 대비한 기본값
+        
+    for root, dirs, files in os.walk(base_dir):
+        for file in files:
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                # '숫자_숫자_숫자' 패턴(예: 160051860_2_14)만 텍스트에서 쏙 뽑아냅니다.
+                match = re.search(r'(\d+_\d+_\d+)', file)
+                if match:
+                    case_set.add(match.group(1))
+    
+    # 중복을 제거하고 알파벳/숫자 순으로 정렬해서 반환합니다.
+    case_list = sorted(list(case_set))
+    return case_list if case_list else ["160051860_2_14"]
+    
 def find_gallery_images(base_dir, case_name, modality=None):
     """
     Traditional TTA 갤러리를 위해 여러 폴더(aug01~aug26)를 탐색하여 이미지 리스트를 반환합니다.
@@ -91,7 +108,11 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
         # --- 좌측 패널 ---
         with gr.Column(scale=1):
             gr.Markdown("### Input Settings")
-            case_input = gr.Textbox(label="Case Name (e.g., patient_001)", placeholder="Enter case name...")
+            # 자동으로 폴더를 뒤져서 환자 번호 리스트를 만듭니다.
+            case_list = get_auto_case_list("original_image")
+
+            # 만들어진 리스트를 드롭다운 메뉴에 쏙 집어넣습니다.
+            case_input = gr.Dropdown(choices=case_list, value=case_list[0], label="Case Name")
             modality_input = gr.Dropdown(choices=["T2WI", "DWI", "ADC"], value="T2WI", label="Modality")
             run_btn = gr.Button("결과 확인 (Run)", variant="primary")
             
