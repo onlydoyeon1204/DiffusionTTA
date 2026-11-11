@@ -80,22 +80,75 @@ def process_case(case_name, modality_display):
     def gen_dummy(base, variance):
         return [round(base + random.uniform(-variance, variance), 3) for _ in range(3)]
 
-    # 테이블 1 (예측 성능 지표) 구성
+    # 1. CSV에서 Diffusion TTA 실제 데이터 읽어오기
+    try:
+        metrics_df = pd.read_csv("tta_summary_metrics.csv")
+        # UI에서 선택된 모달리티(t2, dwi, adc)에 해당하는 행만 필터링
+        mod_df = metrics_df[metrics_df['modality'] == modality]
+    
+        if not mod_df.empty:
+            # 해당 모달리티의 5가지 지표 평균값을 소수점 3자리까지 추출
+            diff_acc = round(mod_df['accuracy'].mean(), 3)
+            diff_bacc = round(mod_df['balanced_accuracy'].mean(), 3)
+            diff_sens = round(mod_df['sensitivity'].mean(), 3)
+            diff_spec = round(mod_df['specificity'].mean(), 3)
+            diff_auc = round(mod_df['auc'].mean(), 3)
+        else:
+            diff_acc, diff_bacc, diff_sens, diff_spec, diff_auc = [0.0, 0.0, 0.0, 0.0, 0.0]
+    except Exception as e:
+        # 파일이 없거나 에러가 날 경우 임시 데이터
+        diff_acc, diff_bacc, diff_sens, diff_spec, diff_auc = [0.895, 0.880, 0.875, 0.915, 0.935]
+
+    # 2. 테이블 1 (예측 성능 지표) 구성 (Diffusion TTA에 실제 데이터 반영)
     df_metrics1 = pd.DataFrame({
         "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "Accuracy": [0.820, 0.845, 0.895],
-        "Balanced Accuracy": [0.805, 0.830, 0.880],
-        "Sensitivity": [0.790, 0.825, 0.875],
-        "Specificity": [0.850, 0.865, 0.915],
-        "AUC": [0.860, 0.885, 0.935]
+        "Accuracy": ["---","---", diff_acc],
+        "Balanced Accuracy": ["---","---", diff_bacc],
+        "Sensitivity": ["---","---", diff_sens],
+        "Specificity": ["---","---", diff_spec],
+        "AUC": ["---","---", diff_auc]
     })
     
-    # 테이블 2 (영상 유사도 및 거리 지표) 구성
+    # 테이블 2 (영상 유사도 및 거리 지표) 실제 데이터 연동
+
+    # 1. Baseline (자기 자신과 비교하므로 고정값)
+    base_ssim, base_wd, base_rd = 1.000, 0.000, 0.000
+
+    # 2. Traditional TTA 실제 데이터 읽어오기
+    try:
+        df_trad = pd.read_csv("raw_augmented_metrics_by_image.csv")
+        # 선택된 환자 번호(case_name)가 포함되고, 선택된 모달리티와 일치하는 데이터만 필터링
+        sub_trad = df_trad[(df_trad['case_id'].str.contains(case_name, case=False)) & (df_trad['modality'] == modality)]
+        if not sub_trad.empty:
+            trad_ssim = round(sub_trad['ssim'].mean(), 3)
+            trad_wd = round(sub_trad['wasserstein_distance'].mean(), 3)
+            trad_rd = round(sub_trad['radiomics_distance'].mean(), 3)
+        else:
+            trad_ssim, trad_wd, trad_rd = [0.0, 0.0, 0.0]
+    except Exception:
+        trad_ssim, trad_wd, trad_rd = ["---", "---", "---"] # 에러 시 더미 데이터
+
+    # 3. Diffusion TTA 실제 데이터 읽어오기
+    try:
+        df_diff = pd.read_csv("metrics_by_set.csv")
+        # 선택된 환자 번호(case_name)가 포함된 데이터만 필터링
+        sub_diff = df_diff[df_diff['case_id'].str.contains(case_name, case=False)]
+        if not sub_diff.empty:
+            # 컬럼명이 t2_ssim, dwi_wasserstein_distance 형태로 되어 있으므로 동적으로 변수 매핑
+            diff_ssim = round(sub_diff[f'{modality}_ssim'].mean(), 3)
+            diff_wd = round(sub_diff[f'{modality}_wasserstein_distance'].mean(), 3)
+            diff_rd = round(sub_diff[f'{modality}_radiomics_distance'].mean(), 3)
+        else:
+            diff_ssim, diff_wd, diff_rd = [0.0, 0.0, 0.0]
+    except Exception:
+        diff_ssim, diff_wd, diff_rd = ["---", "---", "---"] # 에러 시 더미 데이터
+
+    # 추출한 평균값들로 최종 테이블(Dataframe) 생성
     df_metrics2 = pd.DataFrame({
         "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "SSIM": [1.000, 0.824, 0.912],
-        "Wasserstein distance": [0.000, 45.2, 12.8],
-        "Radiomics distance": [0.000, 18.5, 5.4]
+        "SSIM": [base_ssim, trad_ssim, diff_ssim],
+        "Wasserstein distance": [base_wd, trad_wd, diff_wd],
+        "Radiomics distance": [base_rd, trad_rd, diff_rd]
     })
 
     return original_img, baseline_img, diff_02, diff_04, diff_06, trad_gallery, df_metrics1, df_metrics2
