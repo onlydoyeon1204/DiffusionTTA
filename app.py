@@ -107,11 +107,11 @@ def process_case(case_name, modality_display):
     # 2. 테이블 1 (예측 성능 지표) 구성 (Diffusion TTA에 실제 데이터 반영)
     df_metrics1 = pd.DataFrame({
         "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "Accuracy": ["---","---", diff_acc],
-        "Balanced Accuracy": ["---","---", diff_bacc],
-        "Sensitivity": ["---","---", diff_sens],
-        "Specificity": ["---","---", diff_spec],
-        "AUC": ["---","---", diff_auc]
+        "Accuracy": ["0.771","0.803", diff_acc],
+        "Balanced Accuracy": ["0.761","0.813", diff_bacc],
+        "Sensitivity": ["0.707","0.746", diff_sens],
+        "Specificity": ["0.826","0.873", diff_spec],
+        "AUC": ["0.751","0.765", diff_auc]
     })
     
     # 테이블 2 (영상 유사도 및 거리 지표) 실제 데이터 연동
@@ -160,12 +160,12 @@ def process_case(case_name, modality_display):
 
 # --- 3. Gradio UI 레이아웃 구성 ---
 with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 🧠 Medical Image Diffusion-based Test-Time Augmentation (TTA) Demo")
+    gr.Markdown("# 🧠 Medical Image Diffusion Test-Time Augmentation (TTA)")
     
     with gr.Row():
         # --- 좌측 패널 ---
         with gr.Column(scale=1):
-            gr.Markdown("### Input Settings")
+            gr.Markdown("## [Input Settings]")
             
             # 사진 2장(g1, g2 폴더)에서 추출한 52명 환자 번호 전체 명단
             case_list = [
@@ -192,13 +192,13 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
             modality_input = gr.Dropdown(choices=["T2WI", "DWI", "ADC"], value="T2WI", label="Modality")
             run_btn = gr.Button("결과 확인 (Run)", variant="primary")
             
-            gr.Markdown("### Original Image")
+            gr.Markdown("## [Original Image]")
             original_output = gr.Image(label="Original", interactive=False)
             
         # --- 우측 패널 ---
         with gr.Column(scale=3):
             # 우측 패널 1: 영상 결과
-            gr.Markdown("### Image Results")
+            gr.Markdown("## [Image Results]")
         
             gr.Markdown("#### 1. Baseline")
             with gr.Row():
@@ -214,7 +214,13 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
                 diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
             
             # 우측 패널 2: 평가지표
-            gr.Markdown("### Evaluation Metrics")
+            
+            gr.Markdown("---")
+
+            gr.Markdown("<div style='height: 20px;'></div>")
+
+            gr.Markdown("## Evaluation Metrics")
+
             with gr.Row():
                 with gr.Column():
                     gr.Markdown("#### Table 1. Prediction Metrics")
