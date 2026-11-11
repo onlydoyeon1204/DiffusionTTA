@@ -123,14 +123,19 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
         with gr.Column(scale=3):
             # 우측 패널 1: 영상 결과
             gr.Markdown("### Image Results")
+        
+            gr.Markdown("#### 1. Baseline")
             with gr.Row():
                 baseline_output = gr.Image(label="Baseline (Original)", interactive=False)
+        
+            gr.Markdown("#### 2. Traditional TTA Generated Images (aug01 ~ aug26)")
+            trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=True, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
+        
+            gr.Markdown("#### 3. Diffusion TTA Images")
+            with gr.Row():
                 diff_02_output = gr.Image(label="Diffusion (0.2)", interactive=False)
                 diff_04_output = gr.Image(label="Diffusion (0.4)", interactive=False)
                 diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
-            
-            gr.Markdown("#### Traditional TTA Generated Images (aug01 ~ aug26)")
-            trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=True, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
             
             # 우측 패널 2: 평가지표
             gr.Markdown("### Evaluation Metrics")
