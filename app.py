@@ -168,4 +168,62 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
                 
             gr.Markdown("<br>")
             with gr.Group():
-                gr.
+                gr.Markdown("### 🔍 Original Scan")
+                original_output = gr.Image(label="Input Image", interactive=False)
+                
+        with gr.Column(scale=3):
+            with gr.Tabs():
+                with gr.TabItem("🖼️ Image Analysis"):
+                    gr.Markdown("<div style='background-color:#f0f4f8; padding:10px; border-radius:5px;'><b>💡 Malignancy Prediction Score:</b> 0.5 이상일 경우 악성(High Grade), 미만일 경우 양성/저악성(Low Grade)으로 판별합니다.</div>")
+                    gr.Markdown("<br>")
+                    
+                    gt_output = gr.HTML()
+                    
+                    with gr.Group():
+                        gr.Markdown("#### 1. Baseline (Original)")
+                        baseline_output = gr.Image(label="Baseline", interactive=False)
+                        base_score_output = gr.HTML()
+                
+                    with gr.Group():
+                        gr.Markdown("#### 2. Traditional TTA Generated Images (aug01 ~ aug26)")
+                        trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
+                        trad_score_output = gr.HTML()
+                
+                    with gr.Group():
+                        gr.Markdown("#### 3. Diffusion TTA Images (Strengths 0.2 / 0.4 / 0.6)")
+                        with gr.Row():
+                            diff_02_output = gr.Image(label="Diffusion (0.2)", interactive=False)
+                            diff_04_output = gr.Image(label="Diffusion (0.4)", interactive=False)
+                            diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
+                        diff_score_output = gr.HTML()
+                
+                with gr.TabItem("📊 Clinical Metrics"):
+                    gr.Markdown("### Evaluation & Similarity Metrics")
+                    
+                    with gr.Group():
+                        gr.Markdown("#### Table 1. Prediction Metrics")
+                        table1_output = gr.Dataframe(headers=["Method", "Accuracy", "Balanced Accuracy", "Sensitivity", "Specificity", "AUC"], interactive=False)
+                    
+                    gr.Markdown("<br>")
+                    
+                    with gr.Group():
+                        gr.Markdown("#### Table 2. Similarity & Distance Metrics")
+                        gr.Markdown("*※ **Baseline**은 원본 영상 그 자체이므로 자신과의 비교 수치는 의미가 없어 거리 지표 분석에서 고정값 처리되었습니다.*")
+                        table2_output = gr.Dataframe(headers=["Method", "SSIM", "Wasserstein distance", "Radiomics distance"], interactive=False)
+
+    run_btn.click(
+        fn=process_case,
+        inputs=[case_input, modality_input],
+        outputs=[
+            original_output, 
+            gt_output,             
+            baseline_output, base_score_output, 
+            diff_02_output, diff_04_output, diff_06_output, diff_score_output, 
+            trad_gallery_output, trad_score_output, 
+            table1_output, table2_output
+        ]
+    )
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    demo.launch(server_name="0.0.0.0", server_port=port)
