@@ -149,8 +149,8 @@ def process_case(case_name, modality_display):
     return original_img, gt_html, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, df_metrics1, df_metrics2
 
 
-# --- 3. Gradio UI 레이아웃 구성 ---
-with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
+# --- 3. Gradio UI 레이아웃 구성 (Gradio 6.0 최신 규격 반영) ---
+with gr.Blocks(title="Clinical TTA Dashboard") as demo:
     gr.Markdown("# 🏥 Medical Image Diffusion TTA Clinical Dashboard")
     gr.Markdown("Test-Time Augmentation (TTA) 기반의 악성 종양(Malignancy) 예측 및 영상 분석 시스템입니다.")
     
@@ -165,7 +165,8 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
             gr.Markdown("<br>")
             with gr.Group():
                 gr.Markdown("### 🔍 Original Image")
-                original_output = gr.Image(label="Input Image", interactive=False, height=450, show_download_button=False)
+                # 최신 버전 호환성을 위해 다운로드 관련 속성 제거
+                original_output = gr.Image(label="Input Image", interactive=False, height=450)
                 
         with gr.Column(scale=3):
             with gr.Tabs():
@@ -185,14 +186,14 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 1. Baseline (Original)")
                         gr.Markdown("*아무런 변형(Augmentation)을 가하지 않은 원본 의료 영상 그대로를 인공지능 모델에 입력하여 얻은 예측 결과입니다.*")
-                        baseline_output = gr.Image(label="Baseline", interactive=False, show_download_button=False)
+                        baseline_output = gr.Image(label="Baseline", interactive=False)
                         base_score_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 2. Traditional TTA Generated Images")
                         gr.Markdown("*회전, 반전, 이동 등 전통적인 기하학적 변형(Geometric Augmentation) 기법을 사용하여 생성된 26장의 테스트 이미지(aug01 ~ aug26)입니다. 다양성이 다소 부족할 수 있습니다.*")
-                        trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto", show_download_button=False)
+                        trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
                         trad_score_output = gr.HTML()
                         gr.Markdown("<br>")
                 
@@ -202,13 +203,13 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
                         with gr.Row():
                             with gr.Column():
                                 gr.Markdown("<h4 style='text-align:center;'>Strength 0.2</h4>")
-                                diff_02_output = gr.Image(label="Strength: 0.2", interactive=False, show_label=False, show_download_button=False)
+                                diff_02_output = gr.Image(label="Strength: 0.2", interactive=False, show_label=False)
                             with gr.Column():
                                 gr.Markdown("<h4 style='text-align:center;'>Strength 0.4</h4>")
-                                diff_04_output = gr.Image(label="Strength: 0.4", interactive=False, show_label=False, show_download_button=False)
+                                diff_04_output = gr.Image(label="Strength: 0.4", interactive=False, show_label=False)
                             with gr.Column():
                                 gr.Markdown("<h4 style='text-align:center;'>Strength 0.6</h4>")
-                                diff_06_output = gr.Image(label="Strength: 0.6", interactive=False, show_label=False, show_download_button=False)
+                                diff_06_output = gr.Image(label="Strength: 0.6", interactive=False, show_label=False)
                         diff_score_output = gr.HTML()
                         gr.Markdown("<br>")
                 
@@ -264,4 +265,5 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    demo.launch(server_name="0.0.0.0", server_port=port)
+    # 테마 설정을 launch() 메서드 안으로 이동하여 Gradio 6.0 사양 준수
+    demo.launch(server_name="0.0.0.0", server_port=port, theme=gr.themes.Base())
