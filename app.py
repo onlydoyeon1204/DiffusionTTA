@@ -84,11 +84,11 @@ def process_case(case_name, modality_display):
     # 테이블 1 (예측 성능 지표) 구성
     df_metrics1 = pd.DataFrame({
         "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "Accuracy (🔴↑)": ["0.77±0.01","0.80±0.03", "0.84±0.01"],
-        "Balanced Accuracy (🔴↑)": ["0.76±0.01","0.81±0.03", "0.84±0.01"],
-        "Sensitivity (🔴↑)": ["0.70±0.07","0.74±0.06", "0.86±0.02"],
-        "Specificity (🔴↑)": ["0.82±0.06","0.87±0.03", "0.82±0.03"],
-        "AUC (🔴↑)": ["0.75±0.01","0.76±0.05", "0.80±0.01"]
+        "Accuracy (🔴↑)": ["0.77±0.01", "0.80±0.03", "0.84±0.01"],
+        "Balanced Accuracy (🔴↑)": ["0.76±0.01", "0.81±0.03", "0.84±0.01"],
+        "Sensitivity (🔴↑)": ["0.70±0.07", "0.74±0.06", "0.86±0.02"],
+        "Specificity (🔴↑)": ["0.82±0.06", "0.87±0.03", "0.82±0.03"],
+        "AUC (🔴↑)": ["0.75±0.01", "0.76±0.05", "0.80±0.01"]
     })
     
     # 테이블 2 (영상 유사도 및 거리 지표) 실제 데이터 연동
@@ -165,7 +165,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
             gr.Markdown("<br>")
             with gr.Group():
                 gr.Markdown("### 🔍 Original Image")
-                # 다운로드 버튼 숨김 (show_download_button=False)
                 original_output = gr.Image(label="Input Image", interactive=False, height=450, show_download_button=False)
                 
         with gr.Column(scale=3):
@@ -186,7 +185,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 1. Baseline (Original)")
                         gr.Markdown("*아무런 변형(Augmentation)을 가하지 않은 원본 의료 영상 그대로를 인공지능 모델에 입력하여 얻은 예측 결과입니다.*")
-                        # 다운로드 버튼 숨김
                         baseline_output = gr.Image(label="Baseline", interactive=False, show_download_button=False)
                         base_score_output = gr.HTML()
                         gr.Markdown("<br>")
@@ -194,7 +192,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 2. Traditional TTA Generated Images")
                         gr.Markdown("*회전, 반전, 이동 등 전통적인 기하학적 변형(Geometric Augmentation) 기법을 사용하여 생성된 26장의 테스트 이미지(aug01 ~ aug26)입니다. 다양성이 다소 부족할 수 있습니다.*")
-                        # 다운로드 버튼 숨김
                         trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto", show_download_button=False)
                         trad_score_output = gr.HTML()
                         gr.Markdown("<br>")
@@ -205,15 +202,12 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
                         with gr.Row():
                             with gr.Column():
                                 gr.Markdown("<h4 style='text-align:center;'>Strength 0.2</h4>")
-                                # 다운로드 버튼 숨김
                                 diff_02_output = gr.Image(label="Strength: 0.2", interactive=False, show_label=False, show_download_button=False)
                             with gr.Column():
                                 gr.Markdown("<h4 style='text-align:center;'>Strength 0.4</h4>")
-                                # 다운로드 버튼 숨김
                                 diff_04_output = gr.Image(label="Strength: 0.4", interactive=False, show_label=False, show_download_button=False)
                             with gr.Column():
                                 gr.Markdown("<h4 style='text-align:center;'>Strength 0.6</h4>")
-                                # 다운로드 버튼 숨김
                                 diff_06_output = gr.Image(label="Strength: 0.6", interactive=False, show_label=False, show_download_button=False)
                         diff_score_output = gr.HTML()
                         gr.Markdown("<br>")
