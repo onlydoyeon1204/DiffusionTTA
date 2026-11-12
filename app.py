@@ -88,7 +88,6 @@ def process_case(case_name, modality_display):
     })
     
     # 테이블 2 (영상 유사도 및 거리 지표) 실제 데이터 연동
-    base_ssim, base_wd, base_rd = 1.000, 0.000, 0.000
 
     try:
         df_trad = pd.read_csv("raw_augmented_metrics_by_image.csv")
@@ -115,10 +114,10 @@ def process_case(case_name, modality_display):
         diff_ssim, diff_wd, diff_rd = ["---", "---", "---"] 
 
     df_metrics2 = pd.DataFrame({
-        "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "SSIM": [base_ssim, trad_ssim, diff_ssim],
-        "Wasserstein distance": [base_wd, trad_wd, diff_wd],
-        "Radiomics distance": [base_rd, trad_rd, diff_rd]
+        "Method": ["Traditional TTA", "Diffusion TTA"],
+        "SSIM": [trad_ssim, diff_ssim],
+        "Wasserstein distance": [trad_wd, diff_wd],
+        "Radiomics distance": [trad_rd, diff_rd]
     })
 
     return original_img, baseline_img, base_score, diff_02, diff_04, diff_06, diff_score, trad_gallery, trad_score, df_metrics1, df_metrics2
