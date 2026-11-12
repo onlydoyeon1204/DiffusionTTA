@@ -120,6 +120,15 @@ def process_case(case_name, modality_display):
         "Radiomics distance": [trad_rd, diff_rd]
     })
 
+    def format_score(score):
+        if score == "---" or "에러" in str(score):
+            return f"**Prediction Score:** {score}"
+        return f"**Prediction Score:** <span style='color:red; font-size:16px;'>**{score}**</span>"
+    
+    base_md = format_score(base_score)
+    trad_md = format_score(trad_score)
+    diff_md = format_score(diff_score)
+
     return original_img, baseline_img, base_score, diff_02, diff_04, diff_06, diff_score, trad_gallery, trad_score, df_metrics1, df_metrics2
 
 # --- 3. Gradio UI 레이아웃 구성 ---
@@ -152,29 +161,33 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
             gr.Markdown("## [Original Image]")
             original_output = gr.Image(label="Original", interactive=False)
             
-        # --- 우측 패널 ---
+        # --- 좌측 패널 ---
+        
         with gr.Column(scale=3):
             gr.Markdown("## [Image Results]")
-        
+            gr.Markdown("> **💡 Malignancy Prediction Score:** 인공지능 모델이 해당 의료 영상을 분석하여 악성(Malignancy)일 확률을 0~1 사이로 예측한 수치입니다. (1에 가까울수록 악성일 확률 높음)")
+    
+            # 1. Baseline (Row를 제거하여 이미지 아래에 점수가 뜨도록 변경)
             gr.Markdown("#### 1. Baseline")
-            with gr.Row():
-                baseline_output = gr.Image(label="Baseline (Original)", interactive=False)
-                base_score_output = gr.Textbox(label="Prediction Score", interactive=False)
-        
+            baseline_output = gr.Image(label="Baseline (Original)", interactive=False)
+            base_score_output = gr.Markdown()
+    
+            # 2. Traditional TTA (Textbox -> Markdown 변경)
             gr.Markdown("#### 2. Traditional TTA Generated Images (aug01 ~ aug26)")
             trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=True, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
-            trad_score_output = gr.Textbox(label="Prediction Score", interactive=False)
-        
+            trad_score_output = gr.Markdown()
+    
+            # 3. Diffusion TTA (Textbox -> Markdown 변경)
             gr.Markdown("#### 3. Diffusion TTA Images")
             with gr.Row():
                 diff_02_output = gr.Image(label="Diffusion (0.2)", interactive=False)
                 diff_04_output = gr.Image(label="Diffusion (0.4)", interactive=False)
                 diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
-            diff_score_output = gr.Textbox(label="Prediction Score", interactive=False)
+            diff_score_output = gr.Markdown()
             
-            gr.Markdown("---")
-            gr.Markdown("<div style='height: 20px;'></div>")
-            gr.Markdown("## [Evaluation Metrics]")
+                gr.Markdown("---")
+                gr.Markdown("<div style='height: 20px;'></div>")
+                gr.Markdown("## [Evaluation Metrics]")
 
             with gr.Row():
                 with gr.Column():
@@ -182,6 +195,7 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
                     table1_output = gr.Dataframe(headers=["Method", "Accuracy", "Balanced Accuracy", "Sensitivity", "Specificity", "AUC"], interactive=False)
                 with gr.Column():
                     gr.Markdown("#### Table 2. Similarity & Distance Metrics")
+                    gr.Markdown("*※ **Baseline**은 원본 영상 그 자체이므로 자신과의 비교 수치는 의미가 없어 거리 지표 분석에서 고정값 처리되었습니다.*")
                     table2_output = gr.Dataframe(headers=["Method", "SSIM", "Wasserstein distance", "Radiomics distance"], interactive=False)
 
     # 버튼 클릭 시 이벤트 매핑
