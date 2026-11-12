@@ -3,6 +3,7 @@ import os
 import random
 import pandas as pd
 import re
+import openpyxl
 
 # --- 1. 파일 탐색 헬퍼 함수 ---
 def find_image(base_dir, case_name, modality=None):
@@ -88,6 +89,7 @@ def process_case(case_name, modality_display):
     })
     
     # 테이블 2 (영상 유사도 및 거리 지표) 실제 데이터 연동
+    base_ssim, base_wd, base_rd = 1.000, 0.000, 0.000
 
     try:
         df_trad = pd.read_csv("raw_augmented_metrics_by_image.csv")
@@ -114,12 +116,13 @@ def process_case(case_name, modality_display):
         diff_ssim, diff_wd, diff_rd = ["---", "---", "---"] 
 
     df_metrics2 = pd.DataFrame({
-        "Method": ["Traditional TTA", "Diffusion TTA"],
-        "SSIM": [trad_ssim, diff_ssim],
-        "Wasserstein distance": [trad_wd, diff_wd],
-        "Radiomics distance": [trad_rd, diff_rd]
+        "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
+        "SSIM": [base_ssim, trad_ssim, diff_ssim],
+        "Wasserstein distance": [base_wd, trad_wd, diff_wd],
+        "Radiomics distance": [base_rd, trad_rd, diff_rd]
     })
 
+    # 점수(Score)를 빨간색, 굵게 마크다운 포맷으로 변환하는 함수
     def format_score(score):
         if score == "---" or "에러" in str(score):
             return f"**Prediction Score:** {score}"
@@ -129,7 +132,7 @@ def process_case(case_name, modality_display):
     trad_md = format_score(trad_score)
     diff_md = format_score(diff_score)
 
-    return original_img, baseline_img, base_score, diff_02, diff_04, diff_06, diff_score, trad_gallery, trad_score, df_metrics1, df_metrics2
+    return original_img, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, df_metrics1, df_metrics2
 
 # --- 3. Gradio UI 레이아웃 구성 ---
 with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo:
@@ -161,23 +164,19 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
             gr.Markdown("## [Original Image]")
             original_output = gr.Image(label="Original", interactive=False)
             
-        # --- 좌측 패널 ---
-        
+        # --- 우측 패널 ---
         with gr.Column(scale=3):
             gr.Markdown("## [Image Results]")
             gr.Markdown("> **💡 Malignancy Prediction Score:** 인공지능 모델이 해당 의료 영상을 분석하여 악성(Malignancy)일 확률을 0~1 사이로 예측한 수치입니다. (1에 가까울수록 악성일 확률 높음)")
-    
-            # 1. Baseline (Row를 제거하여 이미지 아래에 점수가 뜨도록 변경)
+        
             gr.Markdown("#### 1. Baseline")
             baseline_output = gr.Image(label="Baseline (Original)", interactive=False)
             base_score_output = gr.Markdown()
-    
-            # 2. Traditional TTA (Textbox -> Markdown 변경)
+        
             gr.Markdown("#### 2. Traditional TTA Generated Images (aug01 ~ aug26)")
             trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=True, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
             trad_score_output = gr.Markdown()
-    
-            # 3. Diffusion TTA (Textbox -> Markdown 변경)
+        
             gr.Markdown("#### 3. Diffusion TTA Images")
             with gr.Row():
                 diff_02_output = gr.Image(label="Diffusion (0.2)", interactive=False)
