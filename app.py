@@ -125,8 +125,8 @@ def process_case(case_name, modality_display):
     # 점수(Score)를 빨간색, 굵게 마크다운 포맷으로 변환하는 함수
     def format_score(score):
         if score == "---" or "에러" in str(score):
-            return f"**Prediction Score:** {score}"
-        return f"**Prediction Score:** <span style='color:red; font-size:16px;'>**{score}**</span>"
+            return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> {score}</div>"
+        return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> <span style='color:red; font-weight:bold;'>{score}</span></div>"
     
     base_md = format_score(base_score)
     trad_md = format_score(trad_score)
@@ -171,18 +171,18 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
         
             gr.Markdown("#### 1. Baseline")
             baseline_output = gr.Image(label="Baseline (Original)", interactive=False)
-            base_score_output = gr.Markdown()
+            base_score_output = gr.HTML()
         
             gr.Markdown("#### 2. Traditional TTA Generated Images (aug01 ~ aug26)")
             trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=True, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
-            trad_score_output = gr.Markdown()
+            trad_score_output = gr.HTML()
         
             gr.Markdown("#### 3. Diffusion TTA Images")
             with gr.Row():
                 diff_02_output = gr.Image(label="Diffusion (0.2)", interactive=False)
                 diff_04_output = gr.Image(label="Diffusion (0.4)", interactive=False)
                 diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
-            diff_score_output = gr.Markdown()
+            diff_score_output = gr.HTML()
             
             gr.Markdown("---")
             gr.Markdown("<div style='height: 20px;'></div>")
