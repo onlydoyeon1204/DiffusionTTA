@@ -1,9 +1,10 @@
 import gradio as gr
 import os
-import random
 import pandas as pd
-import re
 import openpyxl
+
+# --- 0. 환자 ID 리스트 (case01 ~ case52 자동 생성) ---
+case_list = [f"case{i:02d}" for i in range(1, 53)]
 
 # --- 1. 파일 탐색 헬퍼 함수 ---
 def find_image(base_dir, case_name, modality=None):
@@ -36,7 +37,6 @@ def find_gallery_images(base_dir, case_name, modality=None):
 
 # --- 2. 메인 처리 로직 ---
 def process_case(case_name, modality_display):
-    # UI의 모달리티 이름을 폴더명에 맞게 매핑
     modality_map = {"T2WI": "t2", "DWI": "dwi", "ADC": "adc"}
     modality = modality_map.get(modality_display, "t2")
     
@@ -52,29 +52,36 @@ def process_case(case_name, modality_display):
     # Traditional TTA 갤러리 이미지 찾기
     trad_gallery = find_gallery_images("Traditional_TTA", case_name, modality)
 
-    # 예측 점수(Prediction Scores) 추출
+    # 예측 점수(Prediction Scores) 및 실제 정답(Ground Truth) 추출
     base_score, trad_score, diff_score = "---", "---", "---"
+    ground_truth = "---"
+    
     try:
-        # Baseline 점수 읽기
+        # Baseline 점수 및 정답 읽기
         df_base = pd.read_excel("baseline_scores.xlsx")
         base_row = df_base[df_base['case_id'].str.contains(case_name, case=False, na=False)]
         if not base_row.empty:
             b_vals = base_row.iloc[0][['baseline_score_seed1', 'baseline_score_seed2', 'baseline_score_seed3', 'baseline_score_seed4', 'baseline_score_seed5']]
-            base_score = f"{b_vals.mean():.3f}"
+            base_score = float(b_vals.mean())
             row_idx = base_row.index[0] 
+            
+            # 실제 정답 추출
+            if 'y_true' in base_row.columns:
+                y_val = base_row.iloc[0]['y_true']
+                ground_truth = "High Grade (악성)" if y_val == 1 else "Low Grade (양성)"
             
             # Traditional TTA 점수 읽기
             df_trad = pd.read_excel("traditionalTTA_scores.xlsx")
             if len(df_trad) > row_idx:
                 t_vals = df_trad.iloc[row_idx][['tta_score_seed1', 'tta_score_seed2', 'tta_score_seed3', 'tta_score_seed4', 'tta_score_seed5']]
-                trad_score = f"{t_vals.mean():.3f}"
+                trad_score = float(t_vals.mean())
         
         # Diffusion TTA 점수 읽기
         df_diff = pd.read_excel("diffusionTTA_scores.xlsx", sheet_name=0)
         diff_row = df_diff[df_diff['case_id'].str.contains(case_name, case=False, na=False)]
         if not diff_row.empty:
             d_vals = diff_row.iloc[0][['diffusion_score_seed1', 'diffusion_score_seed2', 'diffusion_score_seed3', 'diffusion_score_seed4', 'diffusion_score_seed5']]
-            diff_score = f"{d_vals.mean():.3f}"
+            diff_score = float(d_vals.mean())
     except Exception:
         pass 
     
@@ -122,93 +129,43 @@ def process_case(case_name, modality_display):
         "Radiomics distance": [base_rd, trad_rd, diff_rd]
     })
 
-    # 점수(Score)를 빨간색, 굵게 마크다운 포맷으로 변환하는 함수
     def format_score(score):
         if score == "---" or "에러" in str(score):
             return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> {score}</div>"
-        return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> <span style='color:red; font-weight:bold;'>{score}</span></div>"
+        
+        score_val = float(score)
+        pred_class = "High Grade" if score_val >= 0.5 else "Low Grade"
+        color = "#e74c3c" if score_val >= 0.5 else "#27ae60"
+        
+        return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> <span style='color:{color}; font-weight:bold;'>{score_val:.3f} ({pred_class})</span></div>"
     
     base_md = format_score(base_score)
     trad_md = format_score(trad_score)
     diff_md = format_score(diff_score)
 
-    return original_img, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, df_metrics1, df_metrics2
+    if ground_truth != "---":
+        gt_color = "#e74c3c" if "High" in ground_truth else "#27ae60"
+        bg_color = "#fadbd8" if "High" in ground_truth else "#d5f5e3"
+        gt_html = f"<div style='padding: 10px; background-color: {bg_color}; border-left: 5px solid {gt_color}; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 실제 정답 (Ground Truth):</b> <span style='color:{gt_color}; font-weight:bold;'>{ground_truth}</span></div>"
+    else:
+        gt_html = "<div style='padding: 10px; background-color: #f2f2f2; border-left: 5px solid #ccc; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 실제 정답 (Ground Truth):</b> 데이터 없음</div>"
+
+    return original_img, gt_html, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, df_metrics1, df_metrics2
+
 
 # --- 3. Gradio UI 레이아웃 구성 ---
-with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 🧠 Medical Image Diffusion Test-Time Augmentation (TTA)")
+with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
+    gr.Markdown("# 🏥 Medical Image Diffusion TTA Clinical Dashboard")
+    gr.Markdown("Test-Time Augmentation (TTA) 기반의 악성 종양(Malignancy) 예측 및 영상 분석 시스템입니다.")
     
     with gr.Row():
-        # --- 좌측 패널 ---
         with gr.Column(scale=1):
-            gr.Markdown("## [Input Settings]")
-            
-            case_list = [
-                "160051860_2_14", "160051860_3_13", "160053159_2_9", "160056308_1_10", "160056308_2_7",
-                "170001022_1_13", "170001022_2_9", "170004726_1_14", "170008345_15", "170009104_14",
-                "170014714_13", "170016169_15", "170018993_12", "170020388_12", "170027851_10",
-                "170031928_8", "170035899_13", "170038426_15", "170038657_11", "170042537_2_10",
-                "170042797_14", "170043280_1_15", "170043280_2_12", "170046491_11", "170048486_14",
-                "170054561_16", "170056654_15", "170057519_11", "170059655_12", "180003768_17",
-                "180005707_11", "180006738_12", "180007060_2_14", "180007060_3_13", "180007995_13",
-                "180008861_13", "180011417_12", "180012048_14", "180012596_14", "180013002_11",
-                "180013383_11", "180015672_13", "180015759_13", "180016858_12", "180017003_13",
-                "180018777_12", "180019108_13", "180020049_15", "180020484_13", "180021705_1_12",
-                "180021705_2_12", "180027879_11"
-            ]
-
-            case_input = gr.Dropdown(choices=case_list, value=case_list[0], label="Case Name")
-            modality_input = gr.Dropdown(choices=["T2WI", "DWI", "ADC"], value="T2WI", label="Modality")
-            run_btn = gr.Button("결과 확인 (Run)", variant="primary")
-            
-            gr.Markdown("## [Original Image]")
-            original_output = gr.Image(label="Original", interactive=False)
-            
-        # --- 우측 패널 ---
-        with gr.Column(scale=3):
-            gr.Markdown("## [Image Results]")
-            gr.Markdown("> **💡 Malignancy Prediction Score:** 인공지능 모델이 해당 의료 영상을 분석하여 악성(Malignancy)일 확률을 0~1 사이로 예측한 수치입니다. (1에 가까울수록 악성일 확률 높음)")
-        
-            gr.Markdown("#### 1. Baseline")
-            baseline_output = gr.Image(label="Baseline (Original)", interactive=False)
-            base_score_output = gr.HTML()
-        
-            gr.Markdown("#### 2. Traditional TTA Generated Images (aug01 ~ aug26)")
-            trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=True, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
-            trad_score_output = gr.HTML()
-        
-            gr.Markdown("#### 3. Diffusion TTA Images")
-            with gr.Row():
-                diff_02_output = gr.Image(label="Diffusion (0.2)", interactive=False)
-                diff_04_output = gr.Image(label="Diffusion (0.4)", interactive=False)
-                diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
-            diff_score_output = gr.HTML()
-            
-            gr.Markdown("---")
-            gr.Markdown("<div style='height: 20px;'></div>")
-            gr.Markdown("## [Evaluation Metrics]")
-
-            with gr.Row():
-                with gr.Column():
-                    gr.Markdown("#### Table 1. Prediction Metrics")
-                    table1_output = gr.Dataframe(headers=["Method", "Accuracy", "Balanced Accuracy", "Sensitivity", "Specificity", "AUC"], interactive=False)
-                with gr.Column():
-                    gr.Markdown("#### Table 2. Similarity & Distance Metrics")
-                    gr.Markdown("*※ **Baseline**은 원본 영상 그 자체이므로 자신과의 비교 수치는 의미가 없어 거리 지표 분석에서 고정값 처리되었습니다.*")
-                    table2_output = gr.Dataframe(headers=["Method", "SSIM", "Wasserstein distance", "Radiomics distance"], interactive=False)
-
-    # 버튼 클릭 시 이벤트 매핑
-    run_btn.click(
-        fn=process_case,
-        inputs=[case_input, modality_input],
-        outputs=[
-            original_output, 
-            baseline_output, base_score_output, 
-            diff_02_output, diff_04_output, diff_06_output, diff_score_output, 
-            trad_gallery_output, trad_score_output, 
-            table1_output, table2_output
-        ]
-    )
-
-if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=10000)
+            with gr.Group():
+                gr.Markdown("### 📋 Patient Information")
+                case_input = gr.Dropdown(choices=case_list, value=case_list[0], label="Patient ID (Anonymized)")
+                modality_input = gr.Dropdown(choices=["T2WI", "DWI", "ADC"], value="T2WI", label="Scan Modality")
+                run_btn = gr.Button("Analyze Scan (Run)", variant="primary")
+                
+            gr.Markdown("<br>")
+            with gr.Group():
+                gr.
