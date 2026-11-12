@@ -57,7 +57,6 @@ def process_case(case_name, modality_display):
     ground_truth = "---"
     
     try:
-        # Baseline 점수 및 정답 읽기
         df_base = pd.read_excel("baseline_scores.xlsx")
         base_row = df_base[df_base['case_id'].str.contains(case_name, case=False, na=False)]
         if not base_row.empty:
@@ -65,18 +64,15 @@ def process_case(case_name, modality_display):
             base_score = float(b_vals.mean())
             row_idx = base_row.index[0] 
             
-            # 실제 정답 추출
             if 'y_true' in base_row.columns:
                 y_val = base_row.iloc[0]['y_true']
                 ground_truth = "High Grade (악성)" if y_val == 1 else "Low Grade (양성)"
             
-            # Traditional TTA 점수 읽기
             df_trad = pd.read_excel("traditionalTTA_scores.xlsx")
             if len(df_trad) > row_idx:
                 t_vals = df_trad.iloc[row_idx][['tta_score_seed1', 'tta_score_seed2', 'tta_score_seed3', 'tta_score_seed4', 'tta_score_seed5']]
                 trad_score = float(t_vals.mean())
         
-        # Diffusion TTA 점수 읽기
         df_diff = pd.read_excel("diffusionTTA_scores.xlsx", sheet_name=0)
         diff_row = df_diff[df_diff['case_id'].str.contains(case_name, case=False, na=False)]
         if not diff_row.empty:
@@ -85,7 +81,7 @@ def process_case(case_name, modality_display):
     except Exception:
         pass 
     
-    # 테이블 1 (예측 성능 지표) 구성
+    # 테이블 1
     df_metrics1 = pd.DataFrame({
         "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
         "Accuracy": ["0.77±0.01","0.80±0.03", "0.84±0.01"],
@@ -95,7 +91,7 @@ def process_case(case_name, modality_display):
         "AUC": ["0.75±0.01","0.76±0.05", "0.80±0.01"]
     })
     
-    # 테이블 2 (영상 유사도 및 거리 지표) 실제 데이터 연동
+    # 테이블 2
     base_ssim, base_wd, base_rd = 1.000, 0.000, 0.000
 
     try:
@@ -134,8 +130,8 @@ def process_case(case_name, modality_display):
             return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> {score}</div>"
         
         score_val = float(score)
-        pred_class = "High Grade" if score_val >= 0.5 else "Low Grade"
-        color = "#e74c3c" if score_val >= 0.5 else "#27ae60"
+        pred_class = "High Grade" if score_val >= 0.35 else "Low Grade"
+        color = "#e74c3c" if score_val >= 0.35 else "#27ae60"
         
         return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> <span style='color:{color}; font-weight:bold;'>{score_val:.3f} ({pred_class})</span></div>"
     
@@ -168,48 +164,93 @@ with gr.Blocks(title="Clinical TTA Dashboard", theme=gr.themes.Base()) as demo:
                 
             gr.Markdown("<br>")
             with gr.Group():
-                gr.Markdown("### 🔍 Original Scan")
-                original_output = gr.Image(label="Input Image", interactive=False)
+                gr.Markdown("### 🔍 Original Image")
+                # 이미지 크기를 크게(height 늘림) 유지
+                original_output = gr.Image(label="Input Image", interactive=False, height=450)
                 
         with gr.Column(scale=3):
             with gr.Tabs():
                 with gr.TabItem("🖼️ Image Analysis"):
-                    gr.Markdown("<div style='background-color:#f0f4f8; padding:10px; border-radius:5px;'><b>💡 Malignancy Prediction Score:</b> 0.5 이상일 경우 악성(High Grade), 미만일 경우 양성/저악성(Low Grade)으로 판별합니다.</div>")
+                    # 점수 설명 추가 보강
+                    gr.Markdown("""
+                    <div style='background-color:#f0f4f8; padding:15px; border-radius:8px; line-height:1.6;'>
+                        <b>💡 Malignancy Prediction Score (악성 예측 점수)</b><br>
+                        인공지능 모델이 해당 의료 영상을 분석하여 종양이 악성(Malignancy)일 확률을 0과 1 사이의 수치로 나타낸 값입니다.<br>
+                        본 모델의 임상 최적 기준점(Optimal Threshold)인 <b>0.35를 기준으로, 이상일 경우 악성(High Grade), 미만일 경우 양성/저악성(Low Grade)으로 판별</b>합니다. 
+                        특히 Diffusion TTA를 적용하면, 기존에 놓치기 쉬웠던(False Negative) High Grade 종양을 더욱 민감하고 정확하게 잡아낼 수 있습니다.
+                    </div>
+                    """)
                     gr.Markdown("<br>")
                     
                     gt_output = gr.HTML()
                     
-                    with gr.Group():
-                        gr.Markdown("#### 1. Baseline (Original)")
+                    # 각 Group(테두리)에 여백(마진)을 주어 답답함을 해소
+                    with gr.Group(elem_classes="margin-bottom-20"):
+                        gr.Markdown("### 1. Baseline (Original)")
+                        gr.Markdown("*아무런 변형(Augmentation)을 가하지 않은 원본 의료 영상 그대로를 인공지능 모델에 입력하여 얻은 예측 결과입니다.*")
                         baseline_output = gr.Image(label="Baseline", interactive=False)
                         base_score_output = gr.HTML()
+                        gr.Markdown("<br>")
                 
-                    with gr.Group():
-                        gr.Markdown("#### 2. Traditional TTA Generated Images (aug01 ~ aug26)")
+                    with gr.Group(elem_classes="margin-bottom-20"):
+                        gr.Markdown("### 2. Traditional TTA Generated Images")
+                        gr.Markdown("*회전, 반전, 이동 등 전통적인 기하학적 변형(Geometric Augmentation) 기법을 사용하여 생성된 26장의 테스트 이미지(aug01 ~ aug26)입니다. 다양성이 다소 부족할 수 있습니다.*")
                         trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto")
                         trad_score_output = gr.HTML()
+                        gr.Markdown("<br>")
                 
-                    with gr.Group():
-                        gr.Markdown("#### 3. Diffusion TTA Images (Strengths 0.2 / 0.4 / 0.6)")
+                    with gr.Group(elem_classes="margin-bottom-20"):
+                        gr.Markdown("### 3. Diffusion TTA Images")
+                        gr.Markdown("*Diffusion 생성 모델을 활용하여 질감(Texture)과 미세 구조에 사실적인 변형을 가한 이미지입니다. Strength(강도) 수치가 높을수록 원본과 더 많은 차이를 보입니다.*")
                         with gr.Row():
-                            diff_02_output = gr.Image(label="Diffusion (0.2)", interactive=False)
-                            diff_04_output = gr.Image(label="Diffusion (0.4)", interactive=False)
-                            diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
+                            # 강도 텍스트가 잘 보이도록 제목으로 배치
+                            with gr.Column():
+                                gr.Markdown("<h4 style='text-align:center;'>Strength 0.2</h4>")
+                                diff_02_output = gr.Image(label="Strength: 0.2", interactive=False, show_label=False)
+                            with gr.Column():
+                                gr.Markdown("<h4 style='text-align:center;'>Strength 0.4</h4>")
+                                diff_04_output = gr.Image(label="Strength: 0.4", interactive=False, show_label=False)
+                            with gr.Column():
+                                gr.Markdown("<h4 style='text-align:center;'>Strength 0.6</h4>")
+                                diff_06_output = gr.Image(label="Strength: 0.6", interactive=False, show_label=False)
                         diff_score_output = gr.HTML()
+                        gr.Markdown("<br>")
                 
                 with gr.TabItem("📊 Clinical Metrics"):
                     gr.Markdown("### Evaluation & Similarity Metrics")
                     
                     with gr.Group():
-                        gr.Markdown("#### Table 1. Prediction Metrics")
+                        gr.Markdown("#### Table 1. Prediction Metrics (예측 성능 지표)")
+                        gr.Markdown("""
+                        <ul style='line-height:1.8;'>
+                            <li><b>Accuracy / Balanced Accuracy <span style='color:#e74c3c;'>(↑ 높을수록 좋음)</span></b> : 모델이 양성과 악성을 얼마나 정확하게 맞추었는지를 나타내는 종합 지표입니다.</li>
+                            <li><b>Sensitivity <span style='color:#e74c3c;'>(↑ 높을수록 좋음)</span></b> : 실제 악성(High Grade) 환자를 악성이라고 정확히 잡아낸 비율입니다. 임상에서 가장 중요한 지표입니다.</li>
+                            <li><b>Specificity <span style='color:#e74c3c;'>(↑ 높을수록 좋음)</span></b> : 실제 양성(Low Grade) 환자를 양성이라고 올바르게 판별한 비율입니다.</li>
+                            <li><b>AUC <span style='color:#e74c3c;'>(↑ 높을수록 좋음)</span></b> : 모델의 예측 점수 분포가 두 클래스(High/Low)를 얼마나 잘 구별해 내는지 나타내는 곡선 아래 면적입니다. 1에 가까울수록 완벽합니다.</li>
+                        </ul>
+                        """)
                         table1_output = gr.Dataframe(headers=["Method", "Accuracy", "Balanced Accuracy", "Sensitivity", "Specificity", "AUC"], interactive=False)
                     
                     gr.Markdown("<br>")
                     
                     with gr.Group():
-                        gr.Markdown("#### Table 2. Similarity & Distance Metrics")
-                        gr.Markdown("*※ **Baseline**은 원본 영상 그 자체이므로 자신과의 비교 수치는 의미가 없어 거리 지표 분석에서 고정값 처리되었습니다.*")
+                        gr.Markdown("#### Table 2. Similarity & Distance Metrics (영상 변형 지표)")
+                        gr.Markdown("""
+                        <ul style='line-height:1.8;'>
+                            <li><b>SSIM <span style='color:#e74c3c;'>(↑ 1에 가까울수록 원본과 유사)</span></b> : 생성된 이미지가 원본 영상의 구조적 특성(Structural)을 얼마나 잘 유지하고 있는지 평가합니다. 너무 낮으면 해부학적 구조가 망가졌음을 의미합니다.</li>
+                            <li><b>Wasserstein / Radiomics distance <span style='color:#3498db;'>(↓ 낮을수록 원본 특징 보존)</span></b> : 원본 영상과 TTA 이미지 사이의 픽셀 분포 및 특징적 거리(Distance) 차이를 측정합니다. 값이 너무 크면 임상적 특징이 훼손되었을 가능성이 있습니다.</li>
+                        </ul>
+                        *※ **Baseline**은 원본 영상 그 자체이므로 자신과의 비교 수치(SSIM=1, Distance=0)는 의미가 없어 고정값 처리되었습니다.*
+                        """)
                         table2_output = gr.Dataframe(headers=["Method", "SSIM", "Wasserstein distance", "Radiomics distance"], interactive=False)
+
+    # 마진(여백)을 주기 위한 간단한 CSS 주입
+    demo.css = """
+    .margin-bottom-20 {
+        margin-bottom: 25px !important;
+        padding-bottom: 10px !important;
+    }
+    """
 
     run_btn.click(
         fn=process_case,
