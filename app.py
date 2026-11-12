@@ -185,9 +185,9 @@ with gr.Blocks(title="Diffusion Model TTA Demo", theme=gr.themes.Soft()) as demo
                 diff_06_output = gr.Image(label="Diffusion (0.6)", interactive=False)
             diff_score_output = gr.Markdown()
             
-                gr.Markdown("---")
-                gr.Markdown("<div style='height: 20px;'></div>")
-                gr.Markdown("## [Evaluation Metrics]")
+            gr.Markdown("---")
+            gr.Markdown("<div style='height: 20px;'></div>")
+            gr.Markdown("## [Evaluation Metrics]")
 
             with gr.Row():
                 with gr.Column():
