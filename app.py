@@ -41,19 +41,15 @@ def process_case(case_name, modality_display):
     modality_map = {"T2WI": "t2", "DWI": "dwi", "ADC": "adc"}
     modality = modality_map.get(modality_display, "t2")
     
-    # 이미지 찾기
     original_img = find_image("original_image", case_name, modality)
     baseline_img = original_img
     
-    # Diffusion TTA 이미지 찾기
     diff_02 = find_image(os.path.join("Diffusion_TTA", "strength_0.2"), case_name, modality)
     diff_04 = find_image(os.path.join("Diffusion_TTA", "strength_0.4"), case_name, modality)
     diff_06 = find_image(os.path.join("Diffusion_TTA", "strength_0.6"), case_name, modality)
     
-    # Traditional TTA 갤러리 이미지 찾기
     trad_gallery = find_gallery_images("Traditional_TTA", case_name, modality)
 
-    # 예측 점수(Prediction Scores) 및 실제 정답(Ground Truth) 추출
     base_score, trad_score, diff_score = "---", "---", "---"
     ground_truth = "---"
     
@@ -82,17 +78,16 @@ def process_case(case_name, modality_display):
     except Exception:
         pass 
     
-    # 테이블 1 (예측 성능 지표) 구성
+    # 이모지를 빼고 깔끔한 검은색 화살표로 정돈
     df_metrics1 = pd.DataFrame({
         "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "Accuracy (🔴↑)": ["0.77±0.01", "0.80±0.03", "0.84±0.01"],
-        "Balanced Accuracy (🔴↑)": ["0.76±0.01", "0.81±0.03", "0.84±0.01"],
-        "Sensitivity (🔴↑)": ["0.70±0.07", "0.74±0.06", "0.86±0.02"],
-        "Specificity (🔴↑)": ["0.82±0.06", "0.87±0.03", "0.82±0.03"],
-        "AUC (🔴↑)": ["0.75±0.01", "0.76±0.05", "0.80±0.01"]
+        "Accuracy (↑)": ["0.77±0.01", "0.80±0.03", "0.84±0.01"],
+        "Balanced Accuracy (↑)": ["0.76±0.01", "0.81±0.03", "0.84±0.01"],
+        "Sensitivity (↑)": ["0.70±0.07", "0.74±0.06", "0.86±0.02"],
+        "Specificity (↑)": ["0.82±0.06", "0.87±0.03", "0.82±0.03"],
+        "AUC (↑)": ["0.75±0.01", "0.76±0.05", "0.80±0.01"]
     })
     
-    # 테이블 2 (영상 유사도 및 거리 지표) 실제 데이터 연동
     base_ssim, base_wd, base_rd = 1.000, 0.000, 0.000
 
     try:
@@ -121,9 +116,9 @@ def process_case(case_name, modality_display):
 
     df_metrics2 = pd.DataFrame({
         "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "SSIM (🔴↑)": [base_ssim, trad_ssim, diff_ssim],
-        "Wasserstein distance (🔵↓)": [base_wd, trad_wd, diff_wd],
-        "Radiomics distance (🔵↓)": [base_rd, trad_rd, diff_rd]
+        "SSIM (↑)": [base_ssim, trad_ssim, diff_ssim],
+        "Wasserstein distance (↓)": [base_wd, trad_wd, diff_wd],
+        "Radiomics distance (↓)": [base_rd, trad_rd, diff_rd]
     })
 
     def format_score(score):
@@ -156,12 +151,10 @@ custom_css = """
     margin-bottom: 25px !important;
     padding-bottom: 10px !important;
 }
-/* Gradio 내부의 다운로드 버튼(아이콘) 숨김 처리 */
 button[aria-label="Download"], button[title="Download"], a[download] {
     display: none !important;
     pointer-events: none !important;
 }
-/* 이미지 우클릭 방지 및 마우스 드래그 저장 방지 */
 img {
     -webkit-user-drag: none;
     -khtml-user-drag: none;
@@ -172,23 +165,19 @@ img {
 }
 """
 
-# --- 로고 이미지 인코딩 ---
-# 파일 이름을 unilogo.jpg 로 변경 적용 완료
 logo_path = "unilogo.jpg"
-logo_html_str = "<span style='font-size: 32px; margin-right: 10px;'>🏥</span>" # 기본 아이콘 (로고 파일 없을 시)
+logo_html_str = "<span style='font-size: 32px; margin-right: 10px;'>🏥</span>" 
 if os.path.exists(logo_path):
     try:
         with open(logo_path, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-            # 서울여자대학교 로고 삽입 HTML (크기와 여백 조절)
             logo_html_str = f"<img src='data:image/jpeg;base64,{encoded_string}' style='height: 48px; margin-right: 15px; border-radius: 4px;'>"
     except Exception as e:
-        print(f"로고 로딩 실패: {e}")
+        pass
 
 # --- 3. Gradio UI 레이아웃 구성 ---
 with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
     
-    # 로고와 제목을 나란히 배치하는 HTML
     gr.HTML(f"""
     <div style='display: flex; align-items: center; margin-bottom: 10px;'>
         {logo_html_str}
@@ -262,14 +251,14 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         gr.Markdown("#### Table 1. Prediction Metrics (예측 성능 지표)")
                         gr.Markdown("""
                         <div style='background-color:#f9f9f9; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #e74c3c;'>
-                            <b>[지표 설명]</b> <span style='color:#e74c3c;'><b>(🔴↑ 표시는 값이 높을수록 우수함을 의미합니다)</b></span><br>
+                            <b>[지표 설명]</b> <span style='color:#e74c3c;'><b>(↑ 표시는 값이 높을수록 우수함을 의미합니다)</b></span><br>
                             • <b>Accuracy / Balanced Accuracy</b> : 모델이 양성과 악성을 얼마나 정확하게 맞추었는지를 나타내는 종합 지표입니다.<br>
                             • <b>Sensitivity</b> : 실제 악성(High Grade) 환자를 악성이라고 정확히 잡아낸 비율입니다. 임상에서 가장 중요한 지표입니다.<br>
                             • <b>Specificity</b> : 실제 양성(Low Grade) 환자를 양성이라고 올바르게 판별한 비율입니다.<br>
                             • <b>AUC</b> : 예측 점수 분포가 두 클래스를 얼마나 잘 구별해 내는지 나타내는 지표입니다. (1에 가까울수록 완벽)
                         </div>
                         """)
-                        table1_output = gr.Dataframe(headers=["Method", "Accuracy (🔴↑)", "Balanced Accuracy (🔴↑)", "Sensitivity (🔴↑)", "Specificity (🔴↑)", "AUC (🔴↑)"], interactive=False)
+                        table1_output = gr.Dataframe(headers=["Method", "Accuracy (↑)", "Balanced Accuracy (↑)", "Sensitivity (↑)", "Specificity (↑)", "AUC (↑)"], interactive=False)
                     
                     gr.Markdown("<br>")
                     
@@ -278,12 +267,12 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         gr.Markdown("""
                         <div style='background-color:#f9f9f9; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #3498db;'>
                             <b>[지표 설명]</b> <br>
-                            • <b>SSIM <span style='color:#e74c3c;'>(🔴↑ 값이 높을수록 우수)</span></b> : 생성된 이미지가 원본 영상의 해부학적 구조를 얼마나 잘 유지하고 있는지 평가합니다.<br>
-                            • <b>Wasserstein / Radiomics distance <span style='color:#3498db;'>(🔵↓ 값이 낮을수록 우수)</span></b> : 원본 영상과 TTA 이미지 사이의 픽셀 분포 및 질감적 차이를 측정합니다. 너무 크면 임상적 특징이 훼손되었을 가능성이 있습니다.<br>
+                            • <b>SSIM <span style='color:#e74c3c;'>(↑ 값이 높을수록 우수)</span></b> : 생성된 이미지가 원본 영상의 해부학적 구조를 얼마나 잘 유지하고 있는지 평가합니다.<br>
+                            • <b>Wasserstein / Radiomics distance <span style='color:#3498db;'>(↓ 값이 낮을수록 우수)</span></b> : 원본 영상과 TTA 이미지 사이의 픽셀 분포 및 질감적 차이를 측정합니다. 너무 크면 임상적 특징이 훼손되었을 가능성이 있습니다.<br>
                             <i>* Baseline은 원본 영상 그 자체이므로 자신과의 비교가 무의미하여 고정값(SSIM=1, Distance=0) 처리되었습니다.</i>
                         </div>
                         """)
-                        table2_output = gr.Dataframe(headers=["Method", "SSIM (🔴↑)", "Wasserstein distance (🔵↓)", "Radiomics distance (🔵↓)"], interactive=False)
+                        table2_output = gr.Dataframe(headers=["Method", "SSIM (↑)", "Wasserstein distance (↓)", "Radiomics distance (↓)"], interactive=False)
 
     run_btn.click(
         fn=process_case,
