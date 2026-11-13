@@ -78,16 +78,28 @@ def process_case(case_name, modality_display):
     except Exception:
         pass 
     
-    # 이모지를 빼고 깔끔한 검은색 화살표로 정돈
-    df_metrics1 = pd.DataFrame({
-        "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "Accuracy (↑)": ["0.77±0.01", "0.80±0.03", "0.84±0.01"],
-        "Balanced Accuracy (↑)": ["0.76±0.01", "0.81±0.03", "0.84±0.01"],
-        "Sensitivity (↑)": ["0.70±0.07", "0.74±0.06", "0.86±0.02"],
-        "Specificity (↑)": ["0.82±0.06", "0.87±0.03", "0.82±0.03"],
-        "AUC (↑)": ["0.75±0.01", "0.76±0.05", "0.80±0.01"]
-    })
+    # --- 테이블 1: 색상이 입혀진 화살표와 스타일을 적용한 HTML 표 ---
+    table1_html = """
+    <table style="width:100%; border-collapse: collapse; text-align: center; font-size: 15px; margin-top:10px;">
+        <thead>
+            <tr style="background-color: #f3f4f6; border-bottom: 2px solid #d1d5db;">
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Method</th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Accuracy <span style="color:#e74c3c;">(↑)</span></th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Balanced Accuracy <span style="color:#e74c3c;">(↑)</span></th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Sensitivity <span style="color:#e74c3c;">(↑)</span></th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Specificity <span style="color:#e74c3c;">(↑)</span></th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">AUC <span style="color:#e74c3c;">(↑)</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td style="padding: 10px; border: 1px solid #e5e7eb;">Baseline</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.77±0.01</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.76±0.01</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.70±0.07</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.82±0.06</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.75±0.01</td></tr>
+            <tr style="background-color: #f9fafb;"><td style="padding: 10px; border: 1px solid #e5e7eb;">Traditional TTA</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.80±0.03</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.81±0.03</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.74±0.06</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.87±0.03</td><td style="padding: 10px; border: 1px solid #e5e7eb;">0.76±0.05</td></tr>
+            <tr style="background-color: #eaf2f8; font-weight: bold;"><td style="padding: 10px; border: 1px solid #e5e7eb; color: #2c3e50;">Diffusion TTA</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #e74c3c;">0.84±0.01</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #e74c3c;">0.84±0.01</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #e74c3c;">0.86±0.02</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #e74c3c;">0.82±0.03</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #e74c3c;">0.80±0.01</td></tr>
+        </tbody>
+    </table>
+    """
     
+    # 테이블 2 데이터 준비
     base_ssim, base_wd, base_rd = 1.000, 0.000, 0.000
 
     try:
@@ -114,12 +126,27 @@ def process_case(case_name, modality_display):
     except Exception:
         diff_ssim, diff_wd, diff_rd = ["---", "---", "---"] 
 
-    df_metrics2 = pd.DataFrame({
-        "Method": ["Baseline", "Traditional TTA", "Diffusion TTA"],
-        "SSIM (↑)": [base_ssim, trad_ssim, diff_ssim],
-        "Wasserstein distance (↓)": [base_wd, trad_wd, diff_wd],
-        "Radiomics distance (↓)": [base_rd, trad_rd, diff_rd]
-    })
+    # 값 출력용 포맷팅 함수 (에러 방지)
+    def fmt(val): return f"{val:.3f}" if isinstance(val, (int, float)) else str(val)
+
+    # --- 테이블 2: 색상이 입혀진 화살표와 스타일을 적용한 HTML 표 ---
+    table2_html = f"""
+    <table style="width:100%; border-collapse: collapse; text-align: center; font-size: 15px; margin-top:10px;">
+        <thead>
+            <tr style="background-color: #f3f4f6; border-bottom: 2px solid #d1d5db;">
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Method</th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">SSIM <span style="color:#e74c3c;">(↑)</span></th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Wasserstein distance <span style="color:#3498db;">(↓)</span></th>
+                <th style="padding: 12px; border: 1px solid #e5e7eb;">Radiomics distance <span style="color:#3498db;">(↓)</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td style="padding: 10px; border: 1px solid #e5e7eb;">Baseline</td><td style="padding: 10px; border: 1px solid #e5e7eb;">{fmt(base_ssim)}</td><td style="padding: 10px; border: 1px solid #e5e7eb;">{fmt(base_wd)}</td><td style="padding: 10px; border: 1px solid #e5e7eb;">{fmt(base_rd)}</td></tr>
+            <tr style="background-color: #f9fafb;"><td style="padding: 10px; border: 1px solid #e5e7eb;">Traditional TTA</td><td style="padding: 10px; border: 1px solid #e5e7eb;">{fmt(trad_ssim)}</td><td style="padding: 10px; border: 1px solid #e5e7eb;">{fmt(trad_wd)}</td><td style="padding: 10px; border: 1px solid #e5e7eb;">{fmt(trad_rd)}</td></tr>
+            <tr style="background-color: #eaf2f8; font-weight: bold;"><td style="padding: 10px; border: 1px solid #e5e7eb; color: #2c3e50;">Diffusion TTA</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #e74c3c;">{fmt(diff_ssim)}</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #3498db;">{fmt(diff_wd)}</td><td style="padding: 10px; border: 1px solid #e5e7eb; color: #3498db;">{fmt(diff_rd)}</td></tr>
+        </tbody>
+    </table>
+    """
 
     def format_score(score):
         if score == "---" or "에러" in str(score):
@@ -142,7 +169,7 @@ def process_case(case_name, modality_display):
     else:
         gt_html = "<div style='padding: 10px; background-color: #f2f2f2; border-left: 5px solid #ccc; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 실제 정답 (Ground Truth):</b> 데이터 없음</div>"
 
-    return original_img, gt_html, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, df_metrics1, df_metrics2
+    return original_img, gt_html, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, table1_html, table2_html
 
 
 # 💡 다운로드 및 우클릭 저장을 원천 차단하는 커스텀 CSS
@@ -258,7 +285,8 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                             • <b>AUC</b> : 예측 점수 분포가 두 클래스를 얼마나 잘 구별해 내는지 나타내는 지표입니다. (1에 가까울수록 완벽)
                         </div>
                         """)
-                        table1_output = gr.Dataframe(headers=["Method", "Accuracy (↑)", "Balanced Accuracy (↑)", "Sensitivity (↑)", "Specificity (↑)", "AUC (↑)"], interactive=False)
+                        # DataFrame 컴포넌트를 HTML 컴포넌트로 변경하여 렌더링
+                        table1_output = gr.HTML()
                     
                     gr.Markdown("<br>")
                     
@@ -272,7 +300,8 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                             <i>* Baseline은 원본 영상 그 자체이므로 자신과의 비교가 무의미하여 고정값(SSIM=1, Distance=0) 처리되었습니다.</i>
                         </div>
                         """)
-                        table2_output = gr.Dataframe(headers=["Method", "SSIM (↑)", "Wasserstein distance (↓)", "Radiomics distance (↓)"], interactive=False)
+                        # DataFrame 컴포넌트를 HTML 컴포넌트로 변경하여 렌더링
+                        table2_output = gr.HTML()
 
     run_btn.click(
         fn=process_case,
