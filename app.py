@@ -2,6 +2,7 @@ import gradio as gr
 import os
 import pandas as pd
 import openpyxl
+import base64
 
 # --- 0. 환자 ID 리스트 (case01 ~ case52 자동 생성) ---
 case_list = [f"case{i:02d}" for i in range(1, 53)]
@@ -171,10 +172,29 @@ img {
 }
 """
 
+# --- 로고 이미지 인코딩 ---
+# 파일 이름을 unilogo.jpg 로 변경 적용 완료
+logo_path = "unilogo.jpg"
+logo_html_str = "<span style='font-size: 32px; margin-right: 10px;'>🏥</span>" # 기본 아이콘 (로고 파일 없을 시)
+if os.path.exists(logo_path):
+    try:
+        with open(logo_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            # 서울여자대학교 로고 삽입 HTML (크기와 여백 조절)
+            logo_html_str = f"<img src='data:image/jpeg;base64,{encoded_string}' style='height: 48px; margin-right: 15px; border-radius: 4px;'>"
+    except Exception as e:
+        print(f"로고 로딩 실패: {e}")
+
 # --- 3. Gradio UI 레이아웃 구성 ---
-# css 파라미터를 사용하여 안전하게 스타일 주입
 with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
-    gr.Markdown("# 🏥 Medical Image Diffusion TTA Clinical Dashboard")
+    
+    # 로고와 제목을 나란히 배치하는 HTML
+    gr.HTML(f"""
+    <div style='display: flex; align-items: center; margin-bottom: 10px;'>
+        {logo_html_str}
+        <h1 style='margin: 0; padding: 0;'>Medical Image Diffusion TTA Clinical Dashboard</h1>
+    </div>
+    """)
     gr.Markdown("Test-Time Augmentation (TTA) 기반의 악성 종양(Malignancy) 예측 및 영상 분석 시스템입니다.")
     
     with gr.Row():
