@@ -4,10 +4,10 @@ import pandas as pd
 import openpyxl
 import base64
 
-# --- 0. 환자 ID 리스트 (case01 ~ case52 자동 생성) ---
+# --- 0. Patient ID List (case01 ~ case52 auto-generated) ---
 case_list = [f"case{i:02d}" for i in range(1, 53)]
 
-# --- 1. 파일 탐색 헬퍼 함수 ---
+# --- 1. File Search Helper Functions ---
 def find_image(base_dir, case_name, modality=None):
     if not os.path.exists(base_dir):
         return None
@@ -36,7 +36,7 @@ def find_gallery_images(base_dir, case_name, modality=None):
     
     return sorted(image_paths)
 
-# --- 2. 메인 처리 로직 ---
+# --- 2. Main Processing Logic ---
 def process_case(case_name, modality_display):
     modality_map = {"T2WI": "t2", "DWI": "dwi", "ADC": "adc"}
     modality = modality_map.get(modality_display, "t2")
@@ -63,7 +63,7 @@ def process_case(case_name, modality_display):
             
             if 'y_true' in base_row.columns:
                 y_val = base_row.iloc[0]['y_true']
-                ground_truth = "High Grade (악성)" if y_val == 1 else "Low Grade (양성)"
+                ground_truth = "High Grade (Malignant)" if y_val == 1 else "Low Grade (Benign)"
             
             df_trad = pd.read_excel("traditionalTTA_scores.xlsx")
             if len(df_trad) > row_idx:
@@ -78,7 +78,7 @@ def process_case(case_name, modality_display):
     except Exception:
         pass 
     
-    # --- 테이블 1: 색상이 입혀진 화살표와 스타일을 적용한 HTML 표 ---
+    # --- Table 1: HTML Table with Colored Arrows and Styles ---
     table1_html = """
     <table style="width:100%; border-collapse: collapse; text-align: center; font-size: 15px; margin-top:10px;">
         <thead>
@@ -99,7 +99,7 @@ def process_case(case_name, modality_display):
     </table>
     """
     
-    # 테이블 2 데이터 준비
+    # Table 2 Data Preparation
     base_ssim, base_wd, base_rd = 1.000, 0.000, 0.000
 
     try:
@@ -126,10 +126,10 @@ def process_case(case_name, modality_display):
     except Exception:
         diff_ssim, diff_wd, diff_rd = ["---", "---", "---"] 
 
-    # 값 출력용 포맷팅 함수 (에러 방지)
+    # Formatting function for value output (to prevent errors)
     def fmt(val): return f"{val:.3f}" if isinstance(val, (int, float)) else str(val)
 
-    # --- 테이블 2: 색상이 입혀진 화살표와 스타일을 적용한 HTML 표 ---
+    # --- Table 2: HTML Table with Colored Arrows and Styles ---
     table2_html = f"""
     <table style="width:100%; border-collapse: collapse; text-align: center; font-size: 15px; margin-top:10px;">
         <thead>
@@ -149,7 +149,7 @@ def process_case(case_name, modality_display):
     """
 
     def format_score(score):
-        if score == "---" or "에러" in str(score):
+        if score == "---" or "Error" in str(score).title():
             return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> {score}</div>"
         
         score_val = float(score)
@@ -165,14 +165,14 @@ def process_case(case_name, modality_display):
     if ground_truth != "---":
         gt_color = "#e74c3c" if "High" in ground_truth else "#27ae60"
         bg_color = "#fadbd8" if "High" in ground_truth else "#d5f5e3"
-        gt_html = f"<div style='padding: 10px; background-color: {bg_color}; border-left: 5px solid {gt_color}; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 실제 정답 (Ground Truth):</b> <span style='color:{gt_color}; font-weight:bold;'>{ground_truth}</span></div>"
+        gt_html = f"<div style='padding: 10px; background-color: {bg_color}; border-left: 5px solid {gt_color}; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 Ground Truth:</b> <span style='color:{gt_color}; font-weight:bold;'>{ground_truth}</span></div>"
     else:
-        gt_html = "<div style='padding: 10px; background-color: #f2f2f2; border-left: 5px solid #ccc; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 실제 정답 (Ground Truth):</b> 데이터 없음</div>"
+        gt_html = "<div style='padding: 10px; background-color: #f2f2f2; border-left: 5px solid #ccc; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 Ground Truth:</b> No Data</div>"
 
     return original_img, gt_html, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, table1_html, table2_html
 
 
-# 💡 다운로드 및 우클릭 저장을 원천 차단하는 커스텀 CSS
+# 💡 Custom CSS to completely block downloads and right-click saves
 custom_css = """
 .margin-bottom-20 {
     margin-bottom: 25px !important;
@@ -202,7 +202,7 @@ if os.path.exists(logo_path):
     except Exception as e:
         pass
 
-# --- 3. Gradio UI 레이아웃 구성 ---
+# --- 3. Gradio UI Layout Configuration ---
 with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
     
     gr.HTML(f"""
@@ -211,7 +211,7 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
         <h1 style='margin: 0; padding: 0;'>Medical Image Diffusion TTA Clinical Dashboard</h1>
     </div>
     """)
-    gr.Markdown("Test-Time Augmentation (TTA) 기반의 악성 종양(Malignancy) 예측 및 영상 분석 시스템입니다.")
+    gr.Markdown("A malignancy prediction and image analysis system based on Test-Time Augmentation (TTA).")
     
     with gr.Row():
         with gr.Column(scale=1):
@@ -231,10 +231,10 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                 with gr.TabItem("🖼️ Image Analysis"):
                     gr.Markdown("""
                     <div style='background-color:#f0f4f8; padding:15px; border-radius:8px; line-height:1.6;'>
-                        <b>💡 Malignancy Prediction Score (악성 예측 점수)</b><br>
-                        인공지능 모델이 해당 의료 영상을 분석하여 종양이 악성(Malignancy)일 확률을 0과 1 사이의 수치로 나타낸 값입니다.<br>
-                        실험 통제 기준인 <b>0.5를 기준으로, 이상일 경우 악성(High Grade), 미만일 경우 양성/저악성(Low Grade)으로 판별</b>합니다. 
-                        특히 Diffusion TTA를 적용하면, 기존에 놓치기 쉬웠던(False Negative) High Grade 종양을 더욱 민감하고 정확하게 잡아낼 수 있습니다.
+                        <b>💡 Malignancy Prediction Score</b><br>
+                        This is a value between 0 and 1 indicating the probability that the tumor is malignant, as analyzed by the AI model.<br>
+                        Based on the experimental control threshold of <b>0.5, a score equal to or higher is classified as High Grade (Malignant), and a lower score is classified as Low Grade (Benign/Low-grade).</b> 
+                        In particular, applying Diffusion TTA allows for a more sensitive and accurate detection of High Grade tumors that were previously easy to miss (False Negatives).
                     </div>
                     """)
                     gr.Markdown("<br>")
@@ -243,21 +243,21 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                     
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 1. Baseline (Original)")
-                        gr.Markdown("*아무런 변형(Augmentation)을 가하지 않은 원본 의료 영상 그대로를 인공지능 모델에 입력하여 얻은 예측 결과입니다.*")
+                        gr.Markdown("*Prediction results obtained by inputting the original medical image into the AI model without any augmentation.*")
                         baseline_output = gr.Image(label="Baseline", interactive=False)
                         base_score_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 2. Traditional TTA Generated Images")
-                        gr.Markdown("*회전, 반전, 이동 등 전통적인 기하학적 변형(Geometric Augmentation) 기법을 사용하여 생성된 26장의 테스트 이미지(aug01 ~ aug26)입니다. 다양성이 다소 부족할 수 있습니다.*")
+                        gr.Markdown("*26 test images (aug01 ~ aug26) generated using traditional geometric augmentation techniques such as rotation, flipping, and translation. Diversity may be somewhat lacking.*")
                         trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto", interactive=False)
                         trad_score_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 3. Diffusion TTA Images")
-                        gr.Markdown("*Diffusion 생성 모델을 활용하여 질감(Texture)과 미세 구조에 사실적인 변형을 가한 이미지입니다. Strength(강도) 수치가 높을수록 원본과 더 많은 차이를 보입니다.*")
+                        gr.Markdown("*Images with realistic transformations applied to texture and microstructures using a Diffusion generative model. Higher Strength values indicate greater differences from the original.*")
                         with gr.Row():
                             with gr.Column():
                                 gr.Markdown("<h4 style='text-align:center;'>Strength 0.2</h4>")
@@ -275,32 +275,32 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                     gr.Markdown("### Evaluation & Similarity Metrics")
                     
                     with gr.Group():
-                        gr.Markdown("#### Table 1. Prediction Metrics (예측 성능 지표)")
+                        gr.Markdown("#### Table 1. Prediction Metrics")
                         gr.Markdown("""
                         <div style='background-color:#f9f9f9; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #e74c3c;'>
-                            <b>[지표 설명]</b> <span style='color:#e74c3c;'><b>(↑ 표시는 값이 높을수록 우수함을 의미합니다)</b></span><br>
-                            • <b>Accuracy / Balanced Accuracy</b> : 모델이 양성과 악성을 얼마나 정확하게 맞추었는지를 나타내는 종합 지표입니다.<br>
-                            • <b>Sensitivity</b> : 실제 악성(High Grade) 환자를 악성이라고 정확히 잡아낸 비율입니다. 임상에서 가장 중요한 지표입니다.<br>
-                            • <b>Specificity</b> : 실제 양성(Low Grade) 환자를 양성이라고 올바르게 판별한 비율입니다.<br>
-                            • <b>AUC</b> : 예측 점수 분포가 두 클래스를 얼마나 잘 구별해 내는지 나타내는 지표입니다. (1에 가까울수록 완벽)
+                            <b>[Metric Descriptions]</b> <span style='color:#e74c3c;'><b>(↑ indicates higher values are better)</b></span><br>
+                            • <b>Accuracy / Balanced Accuracy</b> : A comprehensive metric showing how accurately the model classifies benign and malignant cases.<br>
+                            • <b>Sensitivity</b> : The ratio of actual malignant (High Grade) patients correctly identified as malignant. This is the most crucial clinical metric.<br>
+                            • <b>Specificity</b> : The ratio of actual benign (Low Grade) patients correctly identified as benign.<br>
+                            • <b>AUC</b> : A metric indicating how well the prediction score distribution distinguishes between the two classes. (Closer to 1 is perfect)
                         </div>
                         """)
-                        # DataFrame 컴포넌트를 HTML 컴포넌트로 변경하여 렌더링
+                        # Render DataFrame component by converting it to an HTML component
                         table1_output = gr.HTML()
                     
                     gr.Markdown("<br>")
                     
                     with gr.Group():
-                        gr.Markdown("#### Table 2. Similarity & Distance Metrics (영상 변형 지표)")
+                        gr.Markdown("#### Table 2. Similarity & Distance Metrics")
                         gr.Markdown("""
                         <div style='background-color:#f9f9f9; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #3498db;'>
-                            <b>[지표 설명]</b> <br>
-                            • <b>SSIM <span style='color:#e74c3c;'>(↑ 값이 높을수록 우수)</span></b> : 생성된 이미지가 원본 영상의 해부학적 구조를 얼마나 잘 유지하고 있는지 평가합니다.<br>
-                            • <b>Wasserstein / Radiomics distance <span style='color:#3498db;'>(↓ 값이 낮을수록 우수)</span></b> : 원본 영상과 TTA 이미지 사이의 픽셀 분포 및 질감적 차이를 측정합니다. 너무 크면 임상적 특징이 훼손되었을 가능성이 있습니다.<br>
-                            <i>* Baseline은 원본 영상 그 자체이므로 자신과의 비교가 무의미하여 고정값(SSIM=1, Distance=0) 처리되었습니다.</i>
+                            <b>[Metric Descriptions]</b> <br>
+                            • <b>SSIM <span style='color:#e74c3c;'>(↑ higher is better)</span></b> : Evaluates how well the generated image preserves the anatomical structure of the original image.<br>
+                            • <b>Wasserstein / Radiomics distance <span style='color:#3498db;'>(↓ lower is better)</span></b> : Measures the pixel distribution and textural differences between the original and TTA images. If too large, clinical features may have been compromised.<br>
+                            <i>* The Baseline is the original image itself, so comparing it to itself is meaningless; it is set to fixed values (SSIM=1, Distance=0).</i>
                         </div>
                         """)
-                        # DataFrame 컴포넌트를 HTML 컴포넌트로 변경하여 렌더링
+                        # Render DataFrame component by converting it to an HTML component
                         table2_output = gr.HTML()
 
     run_btn.click(
