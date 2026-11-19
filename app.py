@@ -49,16 +49,14 @@ def process_case(case_name, modality_display):
     # Traditional TTA 갤러리 이미지
     trad_gallery = find_gallery_images("Traditional_TTA", case_name, modality)
     
-    # 🚨 수정됨: Diffusion TTA 이미지 Strength별 추출 및 인덱스 필터링 로직
+    # Diffusion TTA 이미지 Strength별 추출 및 인덱스 필터링 로직
     def filter_diff_images(img_paths, target_indices):
-        """파일명에서 번호를 추출하여 타겟 인덱스에 해당하는 이미지만 필터링합니다."""
         if not img_paths or not target_indices:
             return img_paths
         
         filtered = []
         for path in img_paths:
             filename = os.path.basename(path).lower()
-            # case 이름 부분(예: case01)을 지우고 뒤의 증강 번호만 추출
             filename_no_case = filename.replace(case_name.lower(), '')
             nums = re.findall(r'\d+', filename_no_case)
             
@@ -75,7 +73,6 @@ def process_case(case_name, modality_display):
     diff_04_paths = find_gallery_images(os.path.join("Diffusion_TTA", "strength_0.4"), case_name, modality)
     diff_06_paths = find_gallery_images(os.path.join("Diffusion_TTA", "strength_0.6"), case_name, modality)
 
-    # 요청하신 조건에 맞게 필터링 (0.2: 2~10번, 0.4: 1~9번, 0.6: 1,2,5~10번)
     diff_02_paths = filter_diff_images(diff_02_paths, list(range(2, 11)))
     diff_04_paths = filter_diff_images(diff_04_paths, list(range(1, 10)))
     diff_06_paths = filter_diff_images(diff_06_paths, [1, 2] + list(range(5, 11)))
@@ -267,13 +264,22 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
         with gr.Column(scale=3):
             with gr.Tabs():
                 with gr.TabItem("🖼️ Image Analysis"):
+                    # 🚨 수정됨: 논문 서론 배경 및 글리슨 점수에 대한 상세 설명 추가 (0.5 기준 내용 삭제)
                     gr.Markdown("""
                     <div style='background-color:#f0f4f8; padding:15px; border-radius:8px; line-height:1.6;'>
                         <b>💡 Malignancy Prediction Result</b><br>
-                        Shows the final classification result (High Grade or Low Grade) predicted by the AI model. 
-                        <hr style='margin: 10px 0; border: 0; border-top: 1px solid #d1d5db;'>
+                        This system non-invasively predicts prostate cancer malignancy using MRI. Since traditional tissue biopsies carry risks such as bleeding and sepsis, a safe and accurate AI-based early prediction is essential.<br>
+                        Malignancy is clinically evaluated based on the <b>Gleason Score</b> (the sum of the two most common cancer cell patterns).<br>
+                        - <b>Low Grade (Indolent):</b> Gleason 3+3 or 3+4. Patients can often undergo active surveillance, avoiding the side effects of unnecessary overtreatment.<br>
+                        - <b>High Grade (Aggressive):</b> Gleason 4+3 or higher. Requires immediate and appropriate treatment planning.<br>
+                        <i>* The AI model analyzes the MRI and provides the final classification result (High Grade or Low Grade).</i>
+                        <hr style='margin: 15px 0; border: 0; border-top: 1px solid #d1d5db;'>
                         <b>💡 악성도 예측 결과</b><br>
-                        AI 모델이 분석한 최종 분류 결과(고위험군 또는 저위험군)를 나타냅니다. 
+                        본 시스템은 다중 파라미터 MRI를 활용하여 비침습적으로 전립선암의 악성도를 조기에 예측합니다. 기존의 조직 생검은 출혈이나 패혈증 등의 위험을 동반하므로, 이를 보완할 안전한 AI 기반 예측 모델이 필수적입니다.<br>
+                        전립선암의 악성도는 주로 <b>글리슨 점수(Gleason Score, 가장 흔한 암세포 패턴 2개의 점수 합산)</b>를 기준으로 평가됩니다.<br>
+                        - <b>저위험군 (Low Grade):</b> 글리슨 점수 3+3, 3+4의 비교적 순한 암. 불필요한 과잉 치료로 인한 부작용을 피하고 추적 관찰을 진행할 수 있습니다.<br>
+                        - <b>고위험군 (High Grade):</b> 글리슨 점수 4+3 이상의 공격적인 암. 신속하고 적절한 맞춤형 치료 계획 수립이 필요합니다.<br>
+                        <i>* AI 모델은 입력된 영상을 분석하여 해당 종양이 저위험군인지 고위험군인지 최종 분류 결과를 제시합니다.</i>
                     </div>
                     """)
                     gr.Markdown("<br>")
@@ -298,7 +304,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         gr.Markdown("### 3. Diffusion TTA Images")
                         gr.Markdown("*Images with realistic transformations applied using a Diffusion model.*<br>*디퓨전 모델을 활용하여 미세 구조와 질감에 현실적인 변형을 가한 이미지입니다.*")
                         
-                        # 🚨 수정됨: 각 Strength 별로 분리된 갤러리 UI 적용
                         gr.Markdown("#### 🔹 Strength 0.2 (Images 2~10)")
                         diff_gallery_02_output = gr.Gallery(show_label=False, elem_id="gallery_diff_02", columns=[9], rows=[1], object_fit="contain", height="auto", interactive=False)
                         
@@ -360,7 +365,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         """)
                         table2_output = gr.HTML()
 
-    # 🚨 수정됨: 출력 인자들을 3개의 Diffusion 갤러리에 맞게 연결
     run_btn.click(
         fn=process_case,
         inputs=[case_input, modality_input],
