@@ -3,11 +3,10 @@ import os
 import pandas as pd
 import openpyxl
 import base64
+import re
 
 # --- 0. Patient ID List ---
-# 💡 여기에 Baseline/Traditional TTA는 틀렸지만 Diffusion TTA는 맞춘 대표 케이스 번호를 입력하세요.
-representative_cases = ["case03", "case15", "case42"] 
-all_cases = [f"case{i:02d}" for i in range(1, 53)]
+case_list = [f"case{i:02d}" for i in range(1, 53)]
 
 # --- 1. File Search Helper Functions ---
 def find_image(base_dir, case_name, modality=None):
@@ -50,11 +49,36 @@ def process_case(case_name, modality_display):
     # Traditional TTA 갤러리 이미지
     trad_gallery = find_gallery_images("Traditional_TTA", case_name, modality)
     
-    # 🚨 수정됨: Diffusion TTA 갤러리 이미지 (strength 0.2, 0.4, 0.6 폴더 모두 탐색하여 통합)
-    diff_gallery = []
-    for strength in ["strength_0.2", "strength_0.4", "strength_0.6"]:
-        strength_paths = find_gallery_images(os.path.join("Diffusion_TTA", strength), case_name, modality)
-        diff_gallery.extend(strength_paths)
+    # 🚨 수정됨: Diffusion TTA 이미지 Strength별 추출 및 인덱스 필터링 로직
+    def filter_diff_images(img_paths, target_indices):
+        """파일명에서 번호를 추출하여 타겟 인덱스에 해당하는 이미지만 필터링합니다."""
+        if not img_paths or not target_indices:
+            return img_paths
+        
+        filtered = []
+        for path in img_paths:
+            filename = os.path.basename(path).lower()
+            # case 이름 부분(예: case01)을 지우고 뒤의 증강 번호만 추출
+            filename_no_case = filename.replace(case_name.lower(), '')
+            nums = re.findall(r'\d+', filename_no_case)
+            
+            if nums:
+                img_idx = int(nums[-1])
+                if img_idx in target_indices:
+                    filtered.append(path)
+            else:
+                filtered.append(path)
+                
+        return filtered if filtered else img_paths
+
+    diff_02_paths = find_gallery_images(os.path.join("Diffusion_TTA", "strength_0.2"), case_name, modality)
+    diff_04_paths = find_gallery_images(os.path.join("Diffusion_TTA", "strength_0.4"), case_name, modality)
+    diff_06_paths = find_gallery_images(os.path.join("Diffusion_TTA", "strength_0.6"), case_name, modality)
+
+    # 요청하신 조건에 맞게 필터링 (0.2: 2~10번, 0.4: 1~9번, 0.6: 1,2,5~10번)
+    diff_02_paths = filter_diff_images(diff_02_paths, list(range(2, 11)))
+    diff_04_paths = filter_diff_images(diff_04_paths, list(range(1, 10)))
+    diff_06_paths = filter_diff_images(diff_06_paths, [1, 2] + list(range(5, 11)))
 
     base_score, trad_score, diff_score = "---", "---", "---"
     ground_truth = "---"
@@ -153,7 +177,6 @@ def process_case(case_name, modality_display):
     </table>
     """
 
-    # 🚨 수정됨: Score(수치)를 감추고 Result(최종 분류 결과)만 출력하도록 변경
     def format_result(score):
         if score == "---" or "Error" in str(score).title():
             return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Result:</b> Data Not Available</div>"
@@ -175,7 +198,11 @@ def process_case(case_name, modality_display):
     else:
         gt_html = "<div style='padding: 10px; background-color: #f2f2f2; border-left: 5px solid #ccc; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 Ground Truth:</b> No Data</div>"
 
-    return original_img, gt_html, baseline_img, base_res, trad_gallery, trad_res, diff_gallery, diff_res, table1_html, table2_html
+    return (original_img, gt_html, 
+            baseline_img, base_res, 
+            trad_gallery, trad_res,
+            diff_02_paths, diff_04_paths, diff_06_paths, diff_res, 
+            table1_html, table2_html)
 
 
 # Custom CSS
@@ -228,10 +255,7 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
         with gr.Column(scale=1):
             with gr.Group():
                 gr.Markdown("### 📋 Patient Information")
-                # 🚨 수정됨: 추천/대표 케이스 안내 추가
-                gr.Markdown(f"**💡 Recommended Cases:** `{', '.join(representative_cases)}`<br>*(Cases where Diffusion TTA successfully predicts while others fail)*")
-                
-                case_input = gr.Dropdown(choices=all_cases, value=representative_cases[0], label="Patient ID (Anonymized)")
+                case_input = gr.Dropdown(choices=case_list, value=case_list[0], label="Patient ID (Anonymized)")
                 modality_input = gr.Dropdown(choices=["T2WI", "DWI", "ADC"], value="T2WI", label="Scan Modality")
                 run_btn = gr.Button("Analyze Scan (Run)", variant="primary")
                 
@@ -243,7 +267,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
         with gr.Column(scale=3):
             with gr.Tabs():
                 with gr.TabItem("🖼️ Image Analysis"):
-                    # 🚨 수정됨: 예측 점수 수치(Score) 표기 내용 삭제하고 결과(Result) 내용만 반영
                     gr.Markdown("""
                     <div style='background-color:#f0f4f8; padding:15px; border-radius:8px; line-height:1.6;'>
                         <b>💡 Malignancy Prediction Result</b><br>
@@ -266,7 +289,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 2. Traditional TTA Generated Images")
-                        # 🚨 수정됨: "다양성이 다소 부족할 수 있습니다" 문구 삭제
                         gr.Markdown("*Images generated using geometric augmentations (rotation, flip, etc.).*<br>*회전, 반전 등 전통적인 기하학적 증강을 통해 생성된 이미지입니다.*")
                         trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery_trad", columns=[6], rows=[1], object_fit="contain", height="auto", interactive=False)
                         trad_result_output = gr.HTML()
@@ -274,14 +296,22 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 3. Diffusion TTA Images")
-                        # 🚨 수정됨: Diffusion TTA 이미지 26장 전체를 갤러리로 표시
-                        gr.Markdown("*Images with realistic transformations applied using a Diffusion model. Incorporates strengths 0.2, 0.4, and 0.6.*<br>*디퓨전 모델을 활용하여 미세 구조와 질감에 현실적인 변형을 가한 이미지입니다. (Strength 0.2, 0.4, 0.6 생성 영상 모두 포함)*")
-                        diff_gallery_output = gr.Gallery(label="Diffusion TTA", show_label=False, elem_id="gallery_diff", columns=[6], rows=[2], object_fit="contain", height="auto", interactive=False)
+                        gr.Markdown("*Images with realistic transformations applied using a Diffusion model.*<br>*디퓨전 모델을 활용하여 미세 구조와 질감에 현실적인 변형을 가한 이미지입니다.*")
+                        
+                        # 🚨 수정됨: 각 Strength 별로 분리된 갤러리 UI 적용
+                        gr.Markdown("#### 🔹 Strength 0.2 (Images 2~10)")
+                        diff_gallery_02_output = gr.Gallery(show_label=False, elem_id="gallery_diff_02", columns=[9], rows=[1], object_fit="contain", height="auto", interactive=False)
+                        
+                        gr.Markdown("#### 🔹 Strength 0.4 (Images 1~9)")
+                        diff_gallery_04_output = gr.Gallery(show_label=False, elem_id="gallery_diff_04", columns=[9], rows=[1], object_fit="contain", height="auto", interactive=False)
+                        
+                        gr.Markdown("#### 🔹 Strength 0.6 (Images 1, 2, 5~10)")
+                        diff_gallery_06_output = gr.Gallery(show_label=False, elem_id="gallery_diff_06", columns=[8], rows=[1], object_fit="contain", height="auto", interactive=False)
+                        
                         diff_result_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                 with gr.TabItem("📊 Clinical Metrics"):
-                    # 🚨 수정됨: 3가지 모달리티 융합(Fusion) 결과임을 설명하는 안내 상자 추가
                     gr.Markdown("""
                     <div style='background-color:#fff3cd; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #ffc107; margin-bottom: 15px;'>
                         <b>⚠️ Note on Modality Fusion</b><br>
@@ -330,7 +360,7 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         """)
                         table2_output = gr.HTML()
 
-    # 🚨 수정됨: 출력 인자들을 갤러리와 Result에 맞게 재배열
+    # 🚨 수정됨: 출력 인자들을 3개의 Diffusion 갤러리에 맞게 연결
     run_btn.click(
         fn=process_case,
         inputs=[case_input, modality_input],
@@ -339,7 +369,7 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
             gt_output,             
             baseline_output, base_result_output, 
             trad_gallery_output, trad_result_output,
-            diff_gallery_output, diff_result_output, 
+            diff_gallery_02_output, diff_gallery_04_output, diff_gallery_06_output, diff_result_output, 
             table1_output, table2_output
         ]
     )
