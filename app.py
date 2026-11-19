@@ -304,14 +304,14 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         gr.Markdown("### 3. Diffusion TTA Images")
                         gr.Markdown("*Images with realistic transformations applied using a Diffusion model.*<br>*디퓨전 모델을 활용하여 미세 구조와 질감에 현실적인 변형을 가한 이미지입니다.*")
                         
-                        gr.Markdown("#### 🔹 Strength 0.2 (Images 2~10)")
-                        diff_gallery_02_output = gr.Gallery(show_label=False, elem_id="gallery_diff_02", columns=[9], rows=[1], object_fit="contain", height="auto", interactive=False)
+                        gr.Markdown("#### 🔹 Strength 0.2 ")
+                        diff_gallery_02_output = gr.Gallery(show_label=False, elem_id="gallery_diff_02", columns=[9], rows=[1], object_fit="contain", height=150, preview = False, interactive=False)
                         
-                        gr.Markdown("#### 🔹 Strength 0.4 (Images 1~9)")
-                        diff_gallery_04_output = gr.Gallery(show_label=False, elem_id="gallery_diff_04", columns=[9], rows=[1], object_fit="contain", height="auto", interactive=False)
+                        gr.Markdown("#### 🔹 Strength 0.4 ")
+                        diff_gallery_04_output = gr.Gallery(show_label=False, elem_id="gallery_diff_04", columns=[9], rows=[1], object_fit="contain", height=150, preview = False, interactive=False)
                         
-                        gr.Markdown("#### 🔹 Strength 0.6 (Images 1, 2, 5~10)")
-                        diff_gallery_06_output = gr.Gallery(show_label=False, elem_id="gallery_diff_06", columns=[8], rows=[1], object_fit="contain", height="auto", interactive=False)
+                        gr.Markdown("#### 🔹 Strength 0.6 ")
+                        diff_gallery_06_output = gr.Gallery(show_label=False, elem_id="gallery_diff_06", columns=[8], rows=[1], object_fit="contain", height=150, preview = False, interactive=False)
                         
                         diff_result_output = gr.HTML()
                         gr.Markdown("<br>")
