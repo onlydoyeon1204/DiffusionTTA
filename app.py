@@ -203,15 +203,28 @@ def process_case(case_name, modality_display):
 
 
 # Custom CSS
+# Custom CSS
 custom_css = """
 .margin-bottom-20 {
     margin-bottom: 25px !important;
     padding-bottom: 10px !important;
 }
-button[aria-label="Download"], button[title="Download"], a[download] {
+
+/* 🚨 다운로드 버튼 강제 숨김 (구버전 SVG, 버튼 모두 타겟팅) */
+button[aria-label*="Download"], 
+button[aria-label*="download"],
+button[title*="Download"], 
+button[title*="download"],
+a[download], 
+[download],
+.download-button,
+svg path[d*="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"] {
     display: none !important;
+    visibility: hidden !important;
     pointer-events: none !important;
 }
+
+/* 이미지 드래그 방지 */
 img {
     -webkit-user-drag: none;
     -khtml-user-drag: none;
@@ -259,7 +272,7 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
             gr.Markdown("<br>")
             with gr.Group():
                 gr.Markdown("### 🔍 Original Image")
-                original_output = gr.Image(label="Input Image", interactive=False, height=450, show_download_button=False)
+                original_output = gr.Image(label="Input Image", interactive=False, height=450)
                 
         with gr.Column(scale=3):
             with gr.Tabs():
@@ -289,14 +302,14 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 1. Baseline (Original)")
                         gr.Markdown("*Prediction results from the original medical image without any augmentation.*<br>*어떠한 증강 기법도 적용하지 않은 원본 의료 영상의 예측 결과입니다.*")
-                        baseline_output = gr.Image(label="Baseline", interactive=False, show_download_button=False)
+                        baseline_output = gr.Image(label="Baseline", interactive=False)
                         base_result_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 2. Traditional TTA Generated Images")
                         gr.Markdown("*Images generated using geometric augmentations (rotation, flip, etc.).*<br>*회전, 반전 등 전통적인 기하학적 증강을 통해 생성된 이미지입니다.*")
-                        trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery_trad", columns=[6], rows=[1], object_fit="contain", height="auto", interactive=False, show_download_button=False)
+                        trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery_trad", columns=[6], rows=[1], object_fit="contain", height="auto", interactive=False)
                         trad_result_output = gr.HTML()
                         gr.Markdown("<br>")
                 
@@ -305,13 +318,13 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         gr.Markdown("*Images with realistic transformations applied using a Diffusion model.*<br>*디퓨전 모델을 활용하여 미세 구조와 질감에 현실적인 변형을 가한 이미지입니다.*")
                         
                         gr.Markdown("#### 🔹 Strength 0.2 ")
-                        diff_gallery_02_output = gr.Gallery(show_label=False, elem_id="gallery_diff_02", columns=[9], rows=[1], object_fit="contain", height=150, preview = False, interactive=False, show_download_button=False)
+                        diff_gallery_02_output = gr.Gallery(show_label=False, elem_id="gallery_diff_02", columns=[9], rows=[1], object_fit="contain", height=150, preview = False, interactive=False)
                         
                         gr.Markdown("#### 🔹 Strength 0.4 ")
-                        diff_gallery_04_output = gr.Gallery(show_label=False, elem_id="gallery_diff_04", columns=[9], rows=[1], object_fit="contain", height=150, preview = False, interactive=False, show_download_button=False)
+                        diff_gallery_04_output = gr.Gallery(show_label=False, elem_id="gallery_diff_04", columns=[9], rows=[1], object_fit="contain", height=150, preview = False, interactive=False)
                         
                         gr.Markdown("#### 🔹 Strength 0.6 ")
-                        diff_gallery_06_output = gr.Gallery(show_label=False, elem_id="gallery_diff_06", columns=[8], rows=[1], object_fit="contain", height=150, preview = False, interactive=False, show_download_button=False)
+                        diff_gallery_06_output = gr.Gallery(show_label=False, elem_id="gallery_diff_06", columns=[8], rows=[1], object_fit="contain", height=150, preview = False, interactive=False)
                         
                         diff_result_output = gr.HTML()
                         gr.Markdown("<br>")
