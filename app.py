@@ -269,14 +269,14 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                     <div style='background-color:#f0f4f8; padding:15px; border-radius:8px; line-height:1.6;'>
                         <b>💡 Malignancy Prediction Result</b><br>
                         This system non-invasively predicts prostate cancer malignancy using MRI. Since traditional tissue biopsies carry risks such as bleeding and sepsis, a safe and accurate AI-based early prediction is essential.<br>
-                        Malignancy is clinically evaluated based on the <b>Gleason Score</b> (the sum of the two most common cancer cell patterns).<br>
-                        - <b>Low Grade (Indolent):</b> Gleason 3+3 or 3+4. Patients can often undergo active surveillance, avoiding the side effects of unnecessary overtreatment.<br>
-                        - <b>High Grade (Aggressive):</b> Gleason 4+3 or higher. Requires immediate and appropriate treatment planning.<br>
+                        Malignancy is clinically evaluated based on the <b>Gleason Score</b> (the sum of the two most common cancer cell patterns).<br><br>
+                        - <b>Low Grade :</b> Gleason 3+3 or 3+4. Patients can often undergo active surveillance, avoiding the side effects of unnecessary overtreatment.<br>
+                        - <b>High Grade :</b> Gleason 4+3 or higher. Requires immediate and appropriate treatment planning.<br>
                         <i>* The AI model analyzes the MRI and provides the final classification result (High Grade or Low Grade).</i>
                         <hr style='margin: 15px 0; border: 0; border-top: 1px solid #d1d5db;'>
                         <b>💡 악성도 예측 결과</b><br>
                         본 시스템은 다중 파라미터 MRI를 활용하여 비침습적으로 전립선암의 악성도를 조기에 예측합니다. 기존의 조직 생검은 출혈이나 패혈증 등의 위험을 동반하므로, 이를 보완할 안전한 AI 기반 예측 모델이 필수적입니다.<br>
-                        전립선암의 악성도는 주로 <b>글리슨 점수(Gleason Score, 가장 흔한 암세포 패턴 2개의 점수 합산)</b>를 기준으로 평가됩니다.<br>
+                        전립선암의 악성도는 주로 <b>글리슨 점수(Gleason Score, 가장 흔한 암세포 패턴 2개의 점수 합산)</b>를 기준으로 평가됩니다.<br><br>
                         - <b>저위험군 (Low Grade):</b> 글리슨 점수 3+3, 3+4의 비교적 순한 암. 불필요한 과잉 치료로 인한 부작용을 피하고 추적 관찰을 진행할 수 있습니다.<br>
                         - <b>고위험군 (High Grade):</b> 글리슨 점수 4+3 이상의 공격적인 암. 신속하고 적절한 맞춤형 치료 계획 수립이 필요합니다.<br>
                         <i>* AI 모델은 입력된 영상을 분석하여 해당 종양이 저위험군인지 고위험군인지 최종 분류 결과를 제시합니다.</i>
