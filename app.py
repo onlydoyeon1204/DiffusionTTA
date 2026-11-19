@@ -4,8 +4,10 @@ import pandas as pd
 import openpyxl
 import base64
 
-# --- 0. Patient ID List (case01 ~ case52 auto-generated) ---
-case_list = [f"case{i:02d}" for i in range(1, 53)]
+# --- 0. Patient ID List ---
+# 💡 여기에 Baseline/Traditional TTA는 틀렸지만 Diffusion TTA는 맞춘 대표 케이스 번호를 입력하세요.
+representative_cases = ["case03", "case15", "case42"] 
+all_cases = [f"case{i:02d}" for i in range(1, 53)]
 
 # --- 1. File Search Helper Functions ---
 def find_image(base_dir, case_name, modality=None):
@@ -41,14 +43,18 @@ def process_case(case_name, modality_display):
     modality_map = {"T2WI": "t2", "DWI": "dwi", "ADC": "adc"}
     modality = modality_map.get(modality_display, "t2")
     
+    # 원본 및 Baseline 이미지
     original_img = find_image("original_image", case_name, modality)
     baseline_img = original_img
     
-    diff_02 = find_image(os.path.join("Diffusion_TTA", "strength_0.2"), case_name, modality)
-    diff_04 = find_image(os.path.join("Diffusion_TTA", "strength_0.4"), case_name, modality)
-    diff_06 = find_image(os.path.join("Diffusion_TTA", "strength_0.6"), case_name, modality)
-    
+    # Traditional TTA 갤러리 이미지
     trad_gallery = find_gallery_images("Traditional_TTA", case_name, modality)
+    
+    # 🚨 수정됨: Diffusion TTA 갤러리 이미지 (strength 0.2, 0.4, 0.6 폴더 모두 탐색하여 통합)
+    diff_gallery = []
+    for strength in ["strength_0.2", "strength_0.4", "strength_0.6"]:
+        strength_paths = find_gallery_images(os.path.join("Diffusion_TTA", strength), case_name, modality)
+        diff_gallery.extend(strength_paths)
 
     base_score, trad_score, diff_score = "---", "---", "---"
     ground_truth = "---"
@@ -63,7 +69,6 @@ def process_case(case_name, modality_display):
             
             if 'y_true' in base_row.columns:
                 y_val = base_row.iloc[0]['y_true']
-                # 🚨 수정됨: Benign/Malignant 오류 수정 (Low Grade / High Grade 적용)
                 ground_truth = "High Grade (고위험군)" if y_val == 1 else "Low Grade (저위험군)"
             
             df_trad = pd.read_excel("traditionalTTA_scores.xlsx")
@@ -148,20 +153,20 @@ def process_case(case_name, modality_display):
     </table>
     """
 
-    def format_score(score):
+    # 🚨 수정됨: Score(수치)를 감추고 Result(최종 분류 결과)만 출력하도록 변경
+    def format_result(score):
         if score == "---" or "Error" in str(score).title():
-            return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> {score}</div>"
+            return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Result:</b> Data Not Available</div>"
         
         score_val = float(score)
-        # 🚨 수정됨: Benign/Malignant 오류 수정 (Low Grade / High Grade 적용)
         pred_class = "High Grade (고위험군)" if score_val >= 0.5 else "Low Grade (저위험군)"
         color = "#e74c3c" if score_val >= 0.5 else "#27ae60"
         
-        return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Score:</b> <span style='color:{color}; font-weight:bold;'>{score_val:.3f} ({pred_class})</span></div>"
+        return f"<div style='font-size:16px; margin-top:5px;'><b>Prediction Result:</b> <span style='color:{color}; font-weight:bold;'>{pred_class}</span></div>"
     
-    base_md = format_score(base_score)
-    trad_md = format_score(trad_score)
-    diff_md = format_score(diff_score)
+    base_res = format_result(base_score)
+    trad_res = format_result(trad_score)
+    diff_res = format_result(diff_score)
 
     if ground_truth != "---":
         gt_color = "#e74c3c" if "High" in ground_truth else "#27ae60"
@@ -170,7 +175,7 @@ def process_case(case_name, modality_display):
     else:
         gt_html = "<div style='padding: 10px; background-color: #f2f2f2; border-left: 5px solid #ccc; font-size: 16px; margin-bottom: 15px; border-radius: 4px;'><b>🎯 Ground Truth:</b> No Data</div>"
 
-    return original_img, gt_html, baseline_img, base_md, diff_02, diff_04, diff_06, diff_md, trad_gallery, trad_md, table1_html, table2_html
+    return original_img, gt_html, baseline_img, base_res, trad_gallery, trad_res, diff_gallery, diff_res, table1_html, table2_html
 
 
 # Custom CSS
@@ -213,7 +218,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
     </div>
     """)
     
-    # 💡 수정됨: 최상단 시스템 설명 (영/한 분리)
     gr.Markdown("""
     A prostate cancer risk prediction and image analysis system based on Test-Time Augmentation (TTA).
     
@@ -224,7 +228,10 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
         with gr.Column(scale=1):
             with gr.Group():
                 gr.Markdown("### 📋 Patient Information")
-                case_input = gr.Dropdown(choices=case_list, value=case_list[0], label="Patient ID (Anonymized)")
+                # 🚨 수정됨: 추천/대표 케이스 안내 추가
+                gr.Markdown(f"**💡 Recommended Cases:** `{', '.join(representative_cases)}`<br>*(Cases where Diffusion TTA successfully predicts while others fail)*")
+                
+                case_input = gr.Dropdown(choices=all_cases, value=representative_cases[0], label="Patient ID (Anonymized)")
                 modality_input = gr.Dropdown(choices=["T2WI", "DWI", "ADC"], value="T2WI", label="Scan Modality")
                 run_btn = gr.Button("Analyze Scan (Run)", variant="primary")
                 
@@ -236,57 +243,59 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
         with gr.Column(scale=3):
             with gr.Tabs():
                 with gr.TabItem("🖼️ Image Analysis"):
-                    # 💡 수정됨: 악성도 예측 점수 설명 (영/한 분리)
+                    # 🚨 수정됨: 예측 점수 수치(Score) 표기 내용 삭제하고 결과(Result) 내용만 반영
                     gr.Markdown("""
                     <div style='background-color:#f0f4f8; padding:15px; border-radius:8px; line-height:1.6;'>
-                        <b>💡 Malignancy Prediction Score</b><br>
-                        This is a value between 0 and 1 indicating the probability that the tumor is High Grade, as analyzed by the AI model. Based on the threshold of <b>0.5, a score ≥ 0.5 is classified as High Grade (Aggressive), and < 0.5 is classified as Low Grade (Indolent).</b>
+                        <b>💡 Malignancy Prediction Result</b><br>
+                        Shows the final classification result (High Grade or Low Grade) predicted by the AI model. 
                         <hr style='margin: 10px 0; border: 0; border-top: 1px solid #d1d5db;'>
-                        <b>💡 악성도 예측 점수</b><br>
-                        AI 모델이 분석한 고위험군(High Grade) 전립선암일 확률을 0과 1 사이의 값으로 나타냅니다. 기준값 <b>0.5를 바탕으로, 0.5 이상이면 고위험군, 미만이면 저위험군</b>으로 분류됩니다. (저위험군 역시 암에 해당하지만 비교적 순한 암을 의미합니다.)
+                        <b>💡 악성도 예측 결과</b><br>
+                        AI 모델이 분석한 최종 분류 결과(고위험군 또는 저위험군)를 나타냅니다. 
                     </div>
                     """)
                     gr.Markdown("<br>")
                     
                     gt_output = gr.HTML()
                     
-                    # 💡 수정됨: 각 TTA 설명 (영/한 분리)
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 1. Baseline (Original)")
                         gr.Markdown("*Prediction results from the original medical image without any augmentation.*<br>*어떠한 증강 기법도 적용하지 않은 원본 의료 영상의 예측 결과입니다.*")
                         baseline_output = gr.Image(label="Baseline", interactive=False)
-                        base_score_output = gr.HTML()
+                        base_result_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 2. Traditional TTA Generated Images")
-                        gr.Markdown("*Images generated using geometric augmentations (rotation, flip, etc.). Diversity may be limited.*<br>*회전, 반전 등 전통적인 기하학적 증강을 통해 생성된 이미지입니다. 생성된 이미지 간의 다양성이 다소 부족할 수 있습니다.*")
-                        trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery", columns=[6], rows=[1], object_fit="contain", height="auto", interactive=False)
-                        trad_score_output = gr.HTML()
+                        # 🚨 수정됨: "다양성이 다소 부족할 수 있습니다" 문구 삭제
+                        gr.Markdown("*Images generated using geometric augmentations (rotation, flip, etc.).*<br>*회전, 반전 등 전통적인 기하학적 증강을 통해 생성된 이미지입니다.*")
+                        trad_gallery_output = gr.Gallery(label="Traditional TTA", show_label=False, elem_id="gallery_trad", columns=[6], rows=[1], object_fit="contain", height="auto", interactive=False)
+                        trad_result_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                     with gr.Group(elem_classes="margin-bottom-20"):
                         gr.Markdown("### 3. Diffusion TTA Images")
-                        gr.Markdown("*Images with realistic transformations applied using a Diffusion model. Higher Strength indicates greater differences from the original.*<br>*디퓨전 모델을 활용하여 미세 구조와 질감에 현실적인 변형을 가한 이미지입니다. Strength 값이 클수록 원본과 큰 차이를 보입니다.*")
-                        with gr.Row():
-                            with gr.Column():
-                                gr.Markdown("<h4 style='text-align:center;'>Strength 0.2</h4>")
-                                diff_02_output = gr.Image(label="Strength: 0.2", interactive=False, show_label=False)
-                            with gr.Column():
-                                gr.Markdown("<h4 style='text-align:center;'>Strength 0.4</h4>")
-                                diff_04_output = gr.Image(label="Strength: 0.4", interactive=False, show_label=False)
-                            with gr.Column():
-                                gr.Markdown("<h4 style='text-align:center;'>Strength 0.6</h4>")
-                                diff_06_output = gr.Image(label="Strength: 0.6", interactive=False, show_label=False)
-                        diff_score_output = gr.HTML()
+                        # 🚨 수정됨: Diffusion TTA 이미지 26장 전체를 갤러리로 표시
+                        gr.Markdown("*Images with realistic transformations applied using a Diffusion model. Incorporates strengths 0.2, 0.4, and 0.6.*<br>*디퓨전 모델을 활용하여 미세 구조와 질감에 현실적인 변형을 가한 이미지입니다. (Strength 0.2, 0.4, 0.6 생성 영상 모두 포함)*")
+                        diff_gallery_output = gr.Gallery(label="Diffusion TTA", show_label=False, elem_id="gallery_diff", columns=[6], rows=[2], object_fit="contain", height="auto", interactive=False)
+                        diff_result_output = gr.HTML()
                         gr.Markdown("<br>")
                 
                 with gr.TabItem("📊 Clinical Metrics"):
+                    # 🚨 수정됨: 3가지 모달리티 융합(Fusion) 결과임을 설명하는 안내 상자 추가
+                    gr.Markdown("""
+                    <div style='background-color:#fff3cd; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #ffc107; margin-bottom: 15px;'>
+                        <b>⚠️ Note on Modality Fusion</b><br>
+                        The prediction metrics presented in Table 1 represent the <b>fused results of all three modalities (T2WI, DWI, ADC)</b> combined, unlike the 'Image Analysis' tab which shows individual modality outputs.<br>
+                        <hr style='margin: 10px 0; border: 0; border-top: 1px solid #ffeeba;'>
+                        <b>⚠️ 모달리티 융합(Fusion) 안내</b><br>
+                        표 1에 제시된 예측 성능 지표는 'Image Analysis' 탭의 단일 모달리티 결과와 달리, <b>T2WI, DWI, ADC 세 가지 모달리티의 결과를 모두 합친(융합한) 최종 성능</b>을 나타냅니다.
+                    </div>
+                    """)
+                    
                     gr.Markdown("### Evaluation & Similarity Metrics")
                     
                     with gr.Group():
                         gr.Markdown("#### Table 1. Prediction Metrics")
-                        # 💡 수정됨: 표 1 지표 설명 (영/한 분리)
                         gr.Markdown("""
                         <div style='background-color:#f9f9f9; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #e74c3c;'>
                             <b>[Metric Descriptions]</b> <span style='color:#e74c3c;'><b>(↑ indicates higher values are better)</b></span><br>
@@ -308,7 +317,6 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                     
                     with gr.Group():
                         gr.Markdown("#### Table 2. Similarity & Distance Metrics")
-                        # 💡 수정됨: 표 2 지표 설명 (영/한 분리)
                         gr.Markdown("""
                         <div style='background-color:#f9f9f9; padding:15px; border-radius:8px; line-height:1.7; border-left: 4px solid #3498db;'>
                             <b>[Metric Descriptions]</b> <br>
@@ -322,15 +330,16 @@ with gr.Blocks(title="Clinical TTA Dashboard", css=custom_css) as demo:
                         """)
                         table2_output = gr.HTML()
 
+    # 🚨 수정됨: 출력 인자들을 갤러리와 Result에 맞게 재배열
     run_btn.click(
         fn=process_case,
         inputs=[case_input, modality_input],
         outputs=[
             original_output, 
             gt_output,             
-            baseline_output, base_score_output, 
-            diff_02_output, diff_04_output, diff_06_output, diff_score_output, 
-            trad_gallery_output, trad_score_output, 
+            baseline_output, base_result_output, 
+            trad_gallery_output, trad_result_output,
+            diff_gallery_output, diff_result_output, 
             table1_output, table2_output
         ]
     )
